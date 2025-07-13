@@ -34,11 +34,13 @@ function timeToMinutes(time: string): number {
 
 // Function to calculate overlap layout
 const getOverlapLayout = (tasks: Task[]) => {
-    const sortedTasks = [...tasks].sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+    const sortedTasks = [...tasks].sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime) || timeToMinutes(b.endTime) - timeToMinutes(a.endTime));
+    
     const layout = new Map<string, { width: number; left: number; total: number }>();
     if (!sortedTasks.length) return layout;
 
     const columns: Task[][] = [];
+
     for (const task of sortedTasks) {
         let placed = false;
         for (const col of columns) {
@@ -54,13 +56,14 @@ const getOverlapLayout = (tasks: Task[]) => {
         }
     }
     
-    for (let i = 0; i < columns.length; i++) {
+    const totalColumns = columns.length;
+    for (let i = 0; i < totalColumns; i++) {
         const col = columns[i];
         for (const task of col) {
             layout.set(task.id, {
-                width: 100 / columns.length,
-                left: i * (100 / columns.length),
-                total: columns.length,
+                width: 100 / totalColumns,
+                left: i * (100 / totalColumns),
+                total: totalColumns
             });
         }
     }
@@ -86,8 +89,15 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
     const dayOrder: DaysOfWeek[] = useMemo(() => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], []);
     const sortedVisibleDays = useMemo(() => dayOrder.filter(day => visibleDays.includes(day)), [visibleDays, dayOrder]);
 
-    const handleCellClick = (e: MouseEvent, day: DaysOfWeek, hour: string, tasksInCell: Task[]) => {
+    const handleCellClick = (e: MouseEvent, day: DaysOfWeek, hour: string) => {
         e.preventDefault();
+        
+        const tasksInCell = tasks.filter(t => 
+            t.day === day && 
+            timeToMinutes(t.startTime) < timeToMinutes(hour) + 60 && 
+            timeToMinutes(t.endTime) > timeToMinutes(hour)
+        );
+
         // Prevent dialog from opening when starting a drag
         if (e.detail > 0 && !isDragging) {
             setSelectedCellTasks(tasksInCell);
@@ -265,38 +275,31 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
                         const hour = layout === 'vertical' ? rowItem : colItem;
                         const cellKey = `${day}-${hour}`;
 
-                        const tasksInCell = tasks.filter(t => {
+                        const tasksForThisDay = tasks.filter(t => t.day === day);
+                        const tasksInCell = tasksForThisDay.filter(t => {
                              if (layout === 'vertical') {
-                                return t.day === day && timeToMinutes(t.startTime) <= timeToMinutes(hour) && timeToMinutes(t.endTime) > timeToMinutes(hour);
+                                return timeToMinutes(t.startTime) < timeToMinutes(hour) + 60 && timeToMinutes(t.endTime) > timeToMinutes(hour);
                             } else { // horizontal
-                                return t.startTime === hour && t.day === day;
+                                return t.startTime === hour;
                             }
                         });
                         
-                        const tasksStartingInCell = tasksInCell.filter(t => {
-                            if (layout === 'vertical') {
-                                return t.startTime === hour;
-                            } else {
-                                return t.day === day;
-                            }
-                        });
-
-                        const tasksForThisCellLayout = tasks.filter(t => t.day === day && timeToMinutes(t.startTime) < timeToMinutes(hour) + 60 && timeToMinutes(t.endTime) > timeToMinutes(hour));
-                        const overlapLayout = getOverlapLayout(tasksForThisCellLayout);
+                        const tasksStartingInCell = tasksInCell.filter(t => t.startTime === hour);
+                        
+                        const overlapLayout = getOverlapLayout(tasksInCell);
                         
                         return (
                             <TableCell
                                 key={cellKey}
                                 onMouseDown={(e) => { e.preventDefault(); handleMouseDown(day, hour); }}
                                 onMouseEnter={(e) => { e.preventDefault(); handleMouseEnter(day, hour); }}
-                                onClick={(e) => handleCellClick(e, day, hour, tasksInCell)}
+                                onClick={(e) => handleCellClick(e, day, hour)}
                                 className={cn(
                                     "p-0 border-r align-top min-h-[4rem] h-16 md:h-20 min-w-[6rem] md:min-w-[8rem] cursor-pointer transition-colors relative",
-                                    selectedCells[cellKey] ? 'bg-accent/70' : 'hover:bg-accent/50',
-                                    tasksInCell.length > 0 && !selectedCells[cellKey] ? 'bg-muted/20' : ''
+                                    selectedCells[cellKey] ? 'bg-accent/70' : 'hover:bg-accent/50'
                                 )}
                             >
-                                <div className={cn("absolute inset-0 flex", layout === 'vertical' ? 'flex-row' : 'flex-col')}>
+                                <div className={cn("absolute inset-0")}>
                                 {tasksStartingInCell.map(task => {
                                     const layoutProps = overlapLayout.get(task.id);
                                     if (!layoutProps) return null;
@@ -304,8 +307,12 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
                                     const startMinutes = timeToMinutes(task.startTime);
                                     const endMinutes = timeToMinutes(task.endTime);
                                     const durationMinutes = endMinutes - startMinutes;
-
-                                    const oneHourSlotHeight = 100; // as a percentage of the cell height
+                                    const topOffset = (startMinutes % 60) / 60 * 100;
+                                    
+                                    const cellHeight = 4; // h-16 = 4rem, adjust if needed
+                                    const oneHourInRem = cellHeight;
+                                    const oneMinuteInRem = oneHourInRem / 60;
+                                    
                                     let sizeStyle: React.CSSProperties = {};
                                     let positionStyle: React.CSSProperties = {
                                         backgroundColor: task.color,
@@ -320,16 +327,16 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
                                     positionStyle.color = textColor;
 
                                     if (layout === 'vertical') {
-                                        sizeStyle.height = `${(durationMinutes / 60) * oneHourSlotHeight}%`;
-                                        sizeStyle.width = `${layoutProps.width}%`;
-                                        positionStyle.left = `${layoutProps.left}%`;
-                                        positionStyle.top = 0;
+                                        sizeStyle.height = `calc(${durationMinutes * oneMinuteInRem}rem - 2px)`; // 2px for border
+                                        sizeStyle.width = `calc(${layoutProps.width}% - 2px)`;
+                                        positionStyle.left = `calc(${layoutProps.left}% + 1px)`;
+                                        positionStyle.top = `${topOffset}%`;
                                         positionStyle.zIndex = 10 + layoutProps.left;
-                                    } else {
-                                        sizeStyle.width = '100%';
-                                        sizeStyle.height = `${layoutProps.width}%`;
-                                        positionStyle.top = `${layoutProps.left}%`;
-                                        positionStyle.left = 0;
+                                    } else { // Horizontal layout needs different calculation
+                                        sizeStyle.width = `calc(100% - 2px)`;
+                                        sizeStyle.height = `calc(${layoutProps.width}% - 2px)`;
+                                        positionStyle.top = `calc(${layoutProps.left}% + 1px)`;
+                                        positionStyle.left = `1px`;
                                         positionStyle.zIndex = 10 + layoutProps.left;
                                     }
                                     
@@ -337,10 +344,10 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
                                         <div
                                             key={task.id}
                                             style={{ ...sizeStyle, ...positionStyle}}
-                                            className="absolute p-1 rounded-sm text-[10px] md:text-xs overflow-hidden group border-l border-t border-black/10 cursor-pointer"
+                                            className="absolute p-1 rounded-sm text-[10px] md:text-xs overflow-hidden group border-l border-t border-black/10"
                                             onClick={(e) => {
                                                 e.stopPropagation(); // prevent cell click from firing
-                                                handleCellClick(e as any, day, hour, tasksInCell);
+                                                handleCellClick(e, day, hour);
                                             }}
                                         >
                                             <p className="font-semibold">{task.name}</p>
