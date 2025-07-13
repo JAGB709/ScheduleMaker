@@ -3,8 +3,6 @@
 import { forwardRef, useMemo, useState, useEffect, MouseEvent } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Trash2, Edit } from 'lucide-react';
 import type { Task, DaysOfWeek, ScheduleLayout } from '@/app/schedule/[id]/page';
 import { cn } from '@/lib/utils';
 import { CellActionDialog } from './cell-action-dialog';
@@ -32,7 +30,6 @@ function timeToMinutes(time: string): number {
     return hours * 60 + minutes;
 }
 
-// Function to calculate overlap layout
 const getOverlapLayout = (tasks: Task[]) => {
     const sortedTasks = [...tasks].sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime) || timeToMinutes(b.endTime) - timeToMinutes(a.endTime));
     
@@ -85,7 +82,7 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
     const [selectedCellInfo, setSelectedCellInfo] = useState<Cell | null>(null);
     const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
 
-    const sortedHours = useMemo(() => [...hours].sort(), [hours]);
+    const sortedHours = useMemo(() => [...hours].sort((a,b) => timeToMinutes(a) - timeToMinutes(b)), [hours]);
     const dayOrder: DaysOfWeek[] = useMemo(() => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], []);
     const sortedVisibleDays = useMemo(() => dayOrder.filter(day => visibleDays.includes(day)), [visibleDays, dayOrder]);
 
@@ -98,7 +95,6 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
             timeToMinutes(t.endTime) > timeToMinutes(hour)
         );
 
-        // Prevent dialog from opening when starting a drag
         if (e.detail > 0 && !isDragging) {
             setSelectedCellTasks(tasksInCell);
             setSelectedCellInfo({day, hour});
@@ -133,7 +129,6 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
     };
 
     const handleMouseDown = (day: DaysOfWeek, hour: string) => {
-      // Small delay to distinguish click from drag
       const dragTimeout = setTimeout(() => {
           setIsDragging(true);
           const cell = { day, hour };
@@ -193,7 +188,7 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
                 const startDayIndex = sortedVisibleDays.indexOf(startCell.day);
                 const endDayIndex = sortedVisibleDays.indexOf(endCell.day);
                 day = sortedVisibleDays[Math.min(startDayIndex, endDayIndex)];
-                // Note: horizontal drag-to-create spans only one hour slot by design.
+                
                 const nextHourIndex = sortedHours.indexOf(startTime) + 1;
                 if (nextHourIndex < sortedHours.length) {
                     endTime = sortedHours[nextHourIndex];
@@ -274,19 +269,15 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
                         const day = layout === 'vertical' ? colItem as DaysOfWeek : rowItem as DaysOfWeek;
                         const hour = layout === 'vertical' ? rowItem : colItem;
                         const cellKey = `${day}-${hour}`;
-
-                        const tasksForThisDay = tasks.filter(t => t.day === day);
-                        const tasksInCell = tasksForThisDay.filter(t => {
-                             if (layout === 'vertical') {
-                                return timeToMinutes(t.startTime) < timeToMinutes(hour) + 60 && timeToMinutes(t.endTime) > timeToMinutes(hour);
-                            } else { // horizontal
-                                return t.startTime === hour;
-                            }
-                        });
                         
-                        const tasksStartingInCell = tasksInCell.filter(t => t.startTime === hour);
+                        const tasksForThisCell = tasks.filter(t => t.day === day && t.startTime === hour);
                         
-                        const overlapLayout = getOverlapLayout(tasksInCell);
+                        const tasksOverlappingThisCell = tasks.filter(t => t.day === day &&
+                            timeToMinutes(t.startTime) < timeToMinutes(hour) + 60 &&
+                            timeToMinutes(t.endTime) > timeToMinutes(hour)
+                        );
+                        
+                        const overlapLayout = getOverlapLayout(tasksOverlappingThisCell);
                         
                         return (
                             <TableCell
@@ -300,18 +291,17 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
                                 )}
                             >
                                 <div className={cn("absolute inset-0")}>
-                                {tasksStartingInCell.map(task => {
+                                {tasksForThisCell.map(task => {
                                     const layoutProps = overlapLayout.get(task.id);
                                     if (!layoutProps) return null;
 
                                     const startMinutes = timeToMinutes(task.startTime);
                                     const endMinutes = timeToMinutes(task.endTime);
                                     const durationMinutes = endMinutes - startMinutes;
-                                    const topOffset = (startMinutes % 60) / 60 * 100;
+                                    const topOffset = (startMinutes % 60);
                                     
-                                    const cellHeight = 4; // h-16 = 4rem, adjust if needed
-                                    const oneHourInRem = cellHeight;
-                                    const oneMinuteInRem = oneHourInRem / 60;
+                                    const cellHeightRem = 4; // h-16 = 4rem
+                                    const oneMinuteInRem = cellHeightRem / 60;
                                     
                                     let sizeStyle: React.CSSProperties = {};
                                     let positionStyle: React.CSSProperties = {
@@ -327,13 +317,13 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
                                     positionStyle.color = textColor;
 
                                     if (layout === 'vertical') {
-                                        sizeStyle.height = `calc(${durationMinutes * oneMinuteInRem}rem - 2px)`; // 2px for border
+                                        sizeStyle.height = `calc(${durationMinutes * oneMinuteInRem}rem - 2px)`; 
                                         sizeStyle.width = `calc(${layoutProps.width}% - 2px)`;
                                         positionStyle.left = `calc(${layoutProps.left}% + 1px)`;
-                                        positionStyle.top = `${topOffset}%`;
+                                        positionStyle.top = `${topOffset * oneMinuteInRem}rem`;
                                         positionStyle.zIndex = 10 + layoutProps.left;
-                                    } else { // Horizontal layout needs different calculation
-                                        sizeStyle.width = `calc(100% - 2px)`;
+                                    } else { // Horizontal layout
+                                        sizeStyle.width = `calc(${durationMinutes * oneMinuteInRem}rem - 2px)`;
                                         sizeStyle.height = `calc(${layoutProps.width}% - 2px)`;
                                         positionStyle.top = `calc(${layoutProps.left}% + 1px)`;
                                         positionStyle.left = `1px`;
@@ -346,7 +336,7 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
                                             style={{ ...sizeStyle, ...positionStyle}}
                                             className="absolute p-1 rounded-sm text-[10px] md:text-xs overflow-hidden group border-l border-t border-black/10"
                                             onClick={(e) => {
-                                                e.stopPropagation(); // prevent cell click from firing
+                                                e.stopPropagation();
                                                 handleCellClick(e, day, hour);
                                             }}
                                         >
@@ -392,5 +382,3 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
 ScheduleDisplay.displayName = 'ScheduleDisplay';
 
 export default ScheduleDisplay;
-
-    
