@@ -12,7 +12,7 @@ interface ScheduleDisplayProps {
   hours: string[];
   visibleDays: DaysOfWeek[];
   layout: ScheduleLayout;
-  onNewTask: (task: Omit<Task, 'id' | 'endTime'> & { endTime: string }) => void;
+  onNewTask: (task: Omit<Task, 'id'>) => void;
   onDeleteTask: (taskId: string) => void;
   onUpdateTask: (task: Task) => void;
 }
@@ -23,6 +23,7 @@ interface Cell {
 }
 
 function timeToMinutes(time: string): number {
+    if (!time) return 0;
     const [hours, minutes] = time.split(':').map(Number);
     if (isNaN(hours) || isNaN(minutes)) return 0;
     return hours * 60 + minutes;
@@ -36,7 +37,6 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
     const [endCell, setEndCell] = useState<Cell | null>(null);
     const tableRef = useRef<HTMLTableElement>(null);
 
-    const timeSlots = useMemo(() => hours.map(h => timeToMinutes(h)).sort((a,b) => a-b), [hours]);
     const sortedHours = useMemo(() => [...hours].sort(), [hours]);
 
     const getTaskSpan = (task: Task): number => {
@@ -44,38 +44,39 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
       const taskEndMinutes = timeToMinutes(task.endTime);
 
       if (layout === 'vertical') {
-        return sortedHours.filter(hour => {
-          const hourMinutes = timeToMinutes(hour);
-          return hourMinutes >= taskStartMinutes && hourMinutes < taskEndMinutes;
-        }).length;
-      } else {
-        const dayOrder: DaysOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-        const startIndex = visibleDays.map(d => dayOrder.indexOf(d)).indexOf(dayOrder.indexOf(task.day));
-        // This is a simplified span for horizontal, assuming tasks don't span days
-        return 1;
+          // Calculate how many hour slots the task spans
+          return sortedHours.filter(hour => {
+              const hourMinutes = timeToMinutes(hour);
+              return hourMinutes >= taskStartMinutes && hourMinutes < taskEndMinutes;
+          }).length;
       }
+      return 1; // Horizontal span is always 1 for now
     };
     
     const renderedCells = useMemo(() => {
         const cells: { [key: string]: boolean } = {};
-        tasks.forEach(task => {
-            const taskStartMinutes = timeToMinutes(task.startTime);
-            const taskEndMinutes = timeToMinutes(task.endTime);
-            
-            if (layout === 'vertical') {
-                const startIndex = sortedHours.findIndex(h => timeToMinutes(h) === taskStartMinutes);
-                const endIndex = sortedHours.findIndex(h => timeToMinutes(h) === taskEndMinutes);
-                const span = (endIndex === -1 ? sortedHours.length : endIndex) - startIndex;
+        if (layout === 'vertical') {
+            tasks.forEach(task => {
+                const taskStartMinutes = timeToMinutes(task.startTime);
+                const taskEndMinutes = timeToMinutes(task.endTime);
 
-                if (span > 1 && startIndex !== -1) {
-                    for (let i = 1; i < span; i++) {
+                const startIndex = sortedHours.findIndex(h => timeToMinutes(h) >= taskStartMinutes);
+
+                if (startIndex !== -1) {
+                    const startSlotMinutes = timeToMinutes(sortedHours[startIndex]);
+                    const slotsToSpan = sortedHours.filter(h => {
+                       const hMinutes = timeToMinutes(h);
+                       return hMinutes >= startSlotMinutes && hMinutes < taskEndMinutes;
+                    }).length;
+
+                    for (let i = 1; i < slotsToSpan; i++) {
                         if (startIndex + i < sortedHours.length) {
-                            cells[`${task.day}-${sortedHours[startIndex + i]}`] = true;
+                           cells[`${task.day}-${sortedHours[startIndex + i]}`] = true;
                         }
                     }
                 }
-            }
-        });
+            });
+        }
         return cells;
     }, [tasks, sortedHours, layout]);
     
@@ -100,37 +101,41 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
         if (isDragging && startCell && endCell) {
             const taskName = window.prompt('Enter task name:');
             if (taskName) {
-                const dayOrder: DaysOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
                 let startTime, endTime, day;
                 
                 if (layout === 'vertical') {
                     day = startCell.day;
-                    const start = timeToMinutes(startCell.hour);
-                    const end = timeToMinutes(endCell.hour);
-                    const lastHourSlot = sortedHours[sortedHours.indexOf(endCell.hour)];
-                    const lastHourSlotDuration = 60; // Assuming 1 hour slots for simplicity
-                    const finalEndMinutes = timeToMinutes(lastHourSlot) + lastHourSlotDuration;
-                    
-                    startTime = start < end ? startCell.hour : endCell.hour;
-                    const endHour = Math.floor(finalEndMinutes / 60).toString().padStart(2, '0');
-                    const endMinute = (finalEndMinutes % 60).toString().padStart(2, '0');
-                    endTime = `${endHour}:${endMinute}`;
-                } else { // horizontal
+                    const startIdx = sortedHours.indexOf(startCell.hour);
+                    const endIdx = sortedHours.indexOf(endCell.hour);
+                    startTime = sortedHours[Math.min(startIdx, endIdx)];
+
+                    const finalEndCellHour = sortedHours[Math.max(startIdx, endIdx)];
+                    const nextHourIndex = sortedHours.indexOf(finalEndCellHour) + 1;
+
+                    if (nextHourIndex < sortedHours.length) {
+                        endTime = sortedHours[nextHourIndex];
+                    } else {
+                        const lastHourMinutes = timeToMinutes(finalEndCellHour) + 60;
+                        const endHour = Math.floor(lastHourMinutes / 60).toString().padStart(2, '0');
+                        const endMinute = (lastHourMinutes % 60).toString().padStart(2, '0');
+                        endTime = `${endHour}:${endMinute}`;
+                    }
+                } else { // horizontal (simplified)
                     startTime = startCell.hour;
-                    const startIdx = dayOrder.indexOf(startCell.day);
-                    const endIdx = dayOrder.indexOf(endCell.day);
-                    day = startIdx < endIdx ? startCell.day : endCell.day;
+                    day = startCell.day; // simplified to single day
                     
-                    // For now, horizontal dragging only creates a 1-hour task on the start day
-                    const startMinutes = timeToMinutes(startTime);
-                    const endMinutes = startMinutes + 60;
-                    const endHour = Math.floor(endMinutes / 60).toString().padStart(2, '0');
-                    const endMinute = (endMinutes % 60).toString().padStart(2, '0');
-                    endTime = `${endHour}:${endMinute}`;
+                    const nextHourIndex = sortedHours.indexOf(startTime) + 1;
+                    if (nextHourIndex < sortedHours.length) {
+                        endTime = sortedHours[nextHourIndex];
+                    } else {
+                        const lastHourMinutes = timeToMinutes(startTime) + 60;
+                        const endHour = Math.floor(lastHourMinutes / 60).toString().padStart(2, '0');
+                        const endMinute = (lastHourMinutes % 60).toString().padStart(2, '0');
+                        endTime = `${endHour}:${endMinute}`;
+                    }
                 }
 
-                onNewTask({ name: taskName, day, startTime, endTime, color: 'bg-primary/20' });
+                onNewTask({ name: taskName, day, startTime, endTime, color: '#A9A9A9' }); // Default color
             }
         }
         setIsDragging(false);
@@ -140,16 +145,26 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
     
     useEffect(() => {
         const table = tableRef.current;
-        if (table) {
-            const handleMouseLeave = () => {
-                if(isDragging) {
-                    handleMouseUp();
-                }
-            };
-            table.addEventListener('mouseleave', handleMouseLeave);
-            return () => table.removeEventListener('mouseleave', handleMouseLeave);
-        }
+        const handleMouseLeave = (e: MouseEvent) => {
+            if(isDragging) {
+                handleMouseUp();
+            }
+        };
+        table?.addEventListener('mouseleave', handleMouseLeave);
+        
+        const handleDocMouseUp = () => {
+             if (isDragging) {
+                handleMouseUp();
+             }
+        };
+        document.addEventListener('mouseup', handleDocMouseUp);
+
+        return () => {
+            table?.removeEventListener('mouseleave', handleMouseLeave);
+            document.removeEventListener('mouseup', handleDocMouseUp);
+        };
     }, [isDragging, handleMouseUp]);
+
 
     const getSelectedCells = () => {
         if (!isDragging || !startCell || !endCell) return {};
@@ -165,12 +180,13 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
             }
         } else { // horizontal
             const dayOrder: DaysOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-            const startIdx = dayOrder.indexOf(startCell.day);
-            const endIdx = dayOrder.indexOf(endCell.day);
+            const visibleDayOrder = dayOrder.filter(d => visibleDays.includes(d));
+            const startIdx = visibleDayOrder.indexOf(startCell.day);
+            const endIdx = visibleDayOrder.indexOf(endCell.day);
             const [minIdx, maxIdx] = [Math.min(startIdx, endIdx), Math.max(startIdx, endIdx)];
             
             for (let i = minIdx; i <= maxIdx; i++) {
-                selected[`${dayOrder[i]}-${startCell.hour}`] = true;
+                selected[`${visibleDayOrder[i]}-${startCell.hour}`] = true;
             }
         }
 
@@ -185,7 +201,7 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
     return (
         <div ref={ref} className="bg-background p-1 select-none">
         <Card className="border shadow-sm">
-            <Table ref={tableRef} onMouseUp={handleMouseUp} className="border-collapse w-full table-fixed">
+            <Table ref={tableRef} className="border-collapse w-full table-fixed">
             <TableHeader>
                 <TableRow className="hover:bg-card">
                     <TableHead className="w-28 border-r p-2 text-center sticky left-0 bg-card z-10">
@@ -205,46 +221,57 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
                     {headers.map((colItem) => {
                         const day = layout === 'vertical' ? colItem as DaysOfWeek : rowItem as DaysOfWeek;
                         const hour = layout === 'vertical' ? rowItem : colItem;
-
-                        if (renderedCells[`${day}-${hour}`] || (layout === 'horizontal' && renderedCells[`${hour}-${day}`])) {
+                        
+                        const cellKey = `${day}-${hour}`;
+                        if (renderedCells[cellKey]) {
                             return null;
                         }
 
                         const task = tasks.find(t => {
                             if (t.day !== day) return false;
-                            const taskStartMinutes = timeToMinutes(t.startTime);
-                            const hourMinutes = timeToMinutes(hour);
-                            return layout === 'vertical' 
-                                ? taskStartMinutes === hourMinutes
-                                : taskStartMinutes <= hourMinutes && hourMinutes < timeToMinutes(t.endTime);
+                             if (layout === 'vertical') {
+                                return t.startTime === hour;
+                             }
+                             // A task is in a horizontal cell if it starts in that hour slot
+                             return timeToMinutes(t.startTime) <= timeToMinutes(hour) && timeToMinutes(hour) < timeToMinutes(t.endTime);
                         });
+
 
                         if (task && ( (layout === 'vertical' && task.startTime === hour) || (layout === 'horizontal' && task.startTime === hour) )) {
                             const span = getTaskSpan(task);
                             const props = layout === 'vertical' ? { rowSpan: span } : { colSpan: span };
+                            
+                            // Basic text color algorithm (light/dark)
+                            const hex = task.color.replace('#', '');
+                            const r = parseInt(hex.substring(0, 2), 16);
+                            const g = parseInt(hex.substring(2, 4), 16);
+                            const b = parseInt(hex.substring(4, 6), 16);
+                            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                            const textColor = brightness > 128 ? 'black' : 'white';
+
                             return (
                                 <TableCell
-                                    key={`${day}-${hour}`}
+                                    key={cellKey}
                                     {...props}
-                                    className={cn("p-0 border-r align-top relative group", task.color)}
+                                    style={{ backgroundColor: task.color, color: textColor }}
+                                    className={cn("p-0 border-r align-top relative group")}
                                 >
-                                    <div className="text-primary-foreground h-full p-2 rounded-sm text-sm">
-                                        <p className="font-semibold text-foreground">{task.name}</p>
-                                        <p className="text-xs text-muted-foreground">{task.startTime} - {task.endTime}</p>
+                                    <div className="h-full p-2 rounded-sm text-sm">
+                                        <p className="font-semibold">{task.name}</p>
+                                        <p className="text-xs opacity-80">{task.startTime} - {task.endTime}</p>
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100"
+                                            className={cn("absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100", textColor === 'black' ? 'text-destructive hover:bg-black/10' : 'text-white hover:bg-white/20')}
                                             onClick={() => onDeleteTask(task.id)}
                                         >
-                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                            <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 </TableCell>
                             );
                         }
 
-                        const cellKey = `${day}-${hour}`;
                         return (
                             <TableCell
                                 key={cellKey}

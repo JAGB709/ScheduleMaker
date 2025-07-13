@@ -1,8 +1,7 @@
 'use client';
 
-import { Palette, CalendarDays, Clock, Trash2, PlusCircle, PenSquare, Rows, Columns } from 'lucide-react';
+import { Palette, CalendarDays, Trash2, PlusCircle, PenSquare, Rows, Columns } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import CustomizationPanel from '@/components/customization-panel';
 import CreateTaskForm from '@/components/create-task-form';
 import { SidebarHeader, SidebarContent } from '@/components/ui/sidebar';
 import type { DaysOfWeek, Task, ScheduleLayout } from '@/app/page';
@@ -12,6 +11,7 @@ import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Switch } from './ui/switch';
 import { useState } from 'react';
+import CustomizationPanel from './customization-panel';
 
 interface ControlsSidebarProps {
   visibleDays: DaysOfWeek[];
@@ -19,7 +19,7 @@ interface ControlsSidebarProps {
   hours: string[];
   onAddHour: (hour: string) => void;
   onRemoveHour: (hour: string) => void;
-  onAddTask: (task: Omit<Task, 'id' | 'endTime'> & { duration: number }) => void;
+  onAddTask: (task: Omit<Task, 'id'>) => void;
   layout: ScheduleLayout;
   onLayoutChange: (layout: ScheduleLayout) => void;
 }

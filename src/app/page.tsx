@@ -21,7 +21,7 @@ export interface Task {
   day: DaysOfWeek;
   startTime: string; // "HH:mm"
   endTime: string;   // "HH:mm"
-  color: string;
+  color: string; // Hex color string e.g., "#RRGGBB"
 }
 
 export default function Home() {
@@ -150,29 +150,8 @@ export default function Home() {
     });
   };
 
-  const handleAddTask = (task: Omit<Task, 'id' | 'endTime'> & { duration?: number, endTime?: string }) => {
-    let endTime = task.endTime;
-
-    if (task.duration) {
-      const startMinutes = parseInt(task.startTime.split(':')[0]) * 60 + parseInt(task.startTime.split(':')[1]);
-      const durationMinutes = task.duration * 60;
-      const endMinutes = startMinutes + durationMinutes;
-
-      if (endMinutes > 24 * 60) {
-        toast({ title: "Task cannot extend past midnight.", variant: "destructive" });
-        return;
-      }
-      const endHour = Math.floor(endMinutes / 60).toString().padStart(2, '0');
-      const endMinute = (endMinutes % 60).toString().padStart(2, '0');
-      endTime = `${endHour}:${endMinute}`;
-    }
-
-    if (!endTime) {
-        toast({ title: "Invalid task details", description: "Task must have an end time or duration.", variant: "destructive" });
-        return;
-    }
-
-    if (isTimeSlotTaken(task.day, task.startTime, endTime)) {
+  const handleAddTask = (task: Omit<Task, 'id'>) => {
+    if (isTimeSlotTaken(task.day, task.startTime, task.endTime)) {
       toast({
         title: "Time slot conflict",
         description: "This time slot is already taken by another task.",
@@ -180,7 +159,7 @@ export default function Home() {
       });
       return;
     }
-    const newTask: Task = { ...task, id: Date.now().toString(), endTime: endTime };
+    const newTask: Task = { ...task, id: Date.now().toString() };
     setTasks(prevTasks => [...prevTasks, newTask]);
     toast({
         title: "Task created!",

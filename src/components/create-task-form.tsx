@@ -8,31 +8,19 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { DaysOfWeek, Task } from '@/app/page';
-import { RadioGroup, RadioGroupItem } from './ui/radio-group';
-import { Label } from './ui/label';
-import { cn } from '@/lib/utils';
 
 interface CreateTaskFormProps {
   hours: string[];
   visibleDays: DaysOfWeek[];
-  onAddTask: (task: Omit<Task, 'id' | 'endTime'> & { duration: number }) => void;
+  onAddTask: (task: Omit<Task, 'id'>) => void;
 }
-
-const taskColors = [
-    { id: 'blue', value: 'bg-blue-500/30', label: 'Blue' },
-    { id: 'green', value: 'bg-green-500/30', label: 'Green' },
-    { id: 'red', value: 'bg-red-500/30', label: 'Red' },
-    { id: 'yellow', value: 'bg-yellow-500/30', label: 'Yellow' },
-    { id: 'purple', value: 'bg-purple-500/30', label: 'Purple' },
-    { id: 'pink', value: 'bg-pink-500/30', label: 'Pink' },
-];
 
 const formSchema = z.object({
   name: z.string().min(1, 'Task name is required.'),
   day: z.string().min(1, 'Please select a day.'),
   startTime: z.string().min(1, 'Start time is required.'),
-  duration: z.coerce.number().min(0.5, 'Duration must be at least 30 minutes.').max(12, 'Duration cannot exceed 12 hours.'),
-  color: z.string().min(1, 'Please select a color.'),
+  duration: z.coerce.number().min(0.5, 'Duration must be at least 30 minutes.').max(24, 'Duration cannot exceed 24 hours.'),
+  color: z.string().regex(/^#[0-9a-f]{6}$/i, 'Please select a valid color.'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -45,19 +33,34 @@ export default function CreateTaskForm({ hours, visibleDays, onAddTask }: Create
       day: visibleDays[0] || 'Monday',
       startTime: hours[0] || '09:00',
       duration: 1,
-      color: taskColors[0].value,
+      color: '#64B5F6',
     },
   });
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
+    const startMinutes = parseInt(data.startTime.split(':')[0]) * 60 + parseInt(data.startTime.split(':')[1]);
+    const endMinutes = startMinutes + data.duration * 60;
+    
+    if (endMinutes > 24*60) {
+      form.setError("duration", { message: "Task cannot extend past midnight." });
+      return;
+    }
+
+    const endHour = Math.floor(endMinutes / 60).toString().padStart(2, '0');
+    const endMinute = (endMinutes % 60).toString().padStart(2, '0');
+    const endTime = `${endHour}:${endMinute}`;
+
     onAddTask({
       name: data.name,
       day: data.day as DaysOfWeek,
       startTime: data.startTime,
-      duration: data.duration,
+      endTime: endTime,
       color: data.color
     });
-    form.reset();
+    form.reset({
+      ...form.getValues(),
+      name: '',
+    });
   };
 
   return (
@@ -135,30 +138,13 @@ export default function CreateTaskForm({ hours, visibleDays, onAddTask }: Create
           control={form.control}
           name="color"
           render={({ field }) => (
-            <FormItem className="space-y-3">
+            <FormItem>
               <FormLabel>Color</FormLabel>
               <FormControl>
-                <RadioGroup
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  className="flex flex-wrap gap-2"
-                >
-                  {taskColors.map(color => (
-                    <FormItem key={color.id} className="flex items-center space-x-2 space-y-0">
-                      <FormControl>
-                        <RadioGroupItem value={color.value} className="sr-only" />
-                      </FormControl>
-                      <Label
-                        className={cn(
-                          'w-8 h-8 rounded-full border-2 border-transparent cursor-pointer',
-                          color.value,
-                          field.value === color.value && 'ring-2 ring-ring ring-offset-2 ring-offset-background'
-                        )}
-                        title={color.label}
-                      />
-                    </FormItem>
-                  ))}
-                </RadioGroup>
+                <div className="flex items-center gap-2">
+                  <Input type="color" {...field} className="p-1 h-10 w-14" />
+                  <span className="text-sm text-muted-foreground">{field.value.toUpperCase()}</span>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
