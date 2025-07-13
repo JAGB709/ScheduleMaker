@@ -60,7 +60,7 @@ export default function HomePage() {
       
       localStorage.setItem(`scheduleSnap-data-${newScheduleId}`, JSON.stringify(newScheduleData));
       
-      const newMetaSchedule = {
+      const newMetaSchedule: Schedule = {
           id: newScheduleId,
           name: newScheduleName,
           preview: '',
@@ -85,19 +85,25 @@ export default function HomePage() {
     <div className="flex min-h-screen w-full flex-col bg-background">
       <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-6">
         <h1 className="text-xl font-bold tracking-tight">My Schedules</h1>
-        <div className="ml-auto">
-          <Button onClick={handleCreateNewSchedule}>
-            <PlusCircle className="mr-2" />
-            Create New Schedule
-          </Button>
-        </div>
+        {schedules.length > 0 && (
+          <div className="ml-auto">
+            <Button onClick={handleCreateNewSchedule}>
+              <PlusCircle className="mr-2" />
+              Create New Schedule
+            </Button>
+          </div>
+        )}
       </header>
       <main className="flex-1 p-4 md:p-6 lg:p-8">
         {schedules.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center border-2 border-dashed border-muted rounded-lg p-12">
+          <div className="flex flex-col items-center justify-center text-center border-2 border-dashed border-muted rounded-lg p-12" style={{height: 'calc(100vh - 12rem)'}}>
             <h2 className="text-2xl font-semibold mb-2">No schedules found</h2>
-            <p className="text-muted-foreground mb-4">Click the button above to create your first schedule.</p>
-            <Image src="https://placehold.co/400x300.png" alt="Empty state illustration" width={400} height={300} data-ai-hint="empty calendar" className="max-w-xs opacity-50"/>
+            <p className="text-muted-foreground mb-4">Click the button below to create your first schedule.</p>
+             <Button onClick={handleCreateNewSchedule} size="lg">
+              <PlusCircle className="mr-2" />
+              Create New Schedule
+            </Button>
+            <Image src="https://placehold.co/400x300.png" alt="Empty state illustration" width={400} height={300} data-ai-hint="empty calendar" className="max-w-xs opacity-50 mt-8"/>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
