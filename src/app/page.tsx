@@ -13,6 +13,7 @@ const initialHours = Array.from({ length: 15 }, (_, i) => `${(i + 6).toString().
 const initialDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
 export type DaysOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
+export type ScheduleLayout = 'vertical' | 'horizontal';
 
 export interface Task {
   id: string;
@@ -20,12 +21,14 @@ export interface Task {
   day: DaysOfWeek;
   startTime: string; // "HH:mm"
   endTime: string;   // "HH:mm"
+  color: string; // e.g., 'bg-blue-200'
 }
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [hours, setHours] = useState<string[]>(initialHours);
   const [visibleDays, setVisibleDays] = useState<DaysOfWeek[]>(initialDays as DaysOfWeek[]);
+  const [layout, setLayout] = useState<ScheduleLayout>('vertical');
   const scheduleRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
@@ -33,12 +36,11 @@ export default function Home() {
     const savedData = localStorage.getItem('scheduleSnap-data');
     if (savedData) {
       try {
-        const { tasks, hours, visibleDays } = JSON.parse(savedData);
-        if (tasks && hours && visibleDays) {
-          setTasks(tasks);
-          setHours(hours);
-          setVisibleDays(visibleDays);
-        }
+        const { tasks, hours, visibleDays, layout } = JSON.parse(savedData);
+        if (tasks) setTasks(tasks);
+        if (hours) setHours(hours);
+        if (visibleDays) setVisibleDays(visibleDays);
+        if (layout) setLayout(layout);
       } catch (e) {
         console.error("Failed to parse saved schedule", e);
         toast({
@@ -51,11 +53,20 @@ export default function Home() {
   }, [toast]);
 
   const handleSaveSchedule = () => {
-    localStorage.setItem('scheduleSnap-data', JSON.stringify({ tasks, hours, visibleDays }));
-    toast({
-      title: "Success!",
-      description: "Your schedule has been saved locally.",
-    });
+    try {
+        localStorage.setItem('scheduleSnap-data', JSON.stringify({ tasks, hours, visibleDays, layout }));
+        toast({
+            title: "Success!",
+            description: "Your schedule has been saved locally.",
+        });
+    } catch (error) {
+        console.error("Failed to save schedule", error);
+        toast({
+            title: "Error saving schedule",
+            description: "Could not save your schedule. The data might be too large.",
+            variant: "destructive",
+        })
+    }
   };
 
   const handleExport = () => {
@@ -166,7 +177,7 @@ export default function Home() {
     const endMinute = (endMinutes % 60).toString().padStart(2, '0');
     const endTime = `${endHour}:${endMinute}`;
     
-    handleAddTask({ name: taskName, day, startTime, endTime });
+    handleAddTask({ name: taskName, day, startTime, endTime, color: 'bg-primary/20' });
   };
   
   const handleDeleteTask = (taskId: string) => {
@@ -198,6 +209,8 @@ export default function Home() {
               onAddHour={addHour}
               onRemoveHour={removeHour}
               onAddTask={handleAddTask}
+              layout={layout}
+              onLayoutChange={setLayout}
             />
           </Sidebar>
           <SidebarInset>
@@ -207,6 +220,7 @@ export default function Home() {
                   tasks={tasks}
                   hours={hours}
                   visibleDays={visibleDays}
+                  layout={layout}
                   onQuickAddTask={handleQuickAddTask}
                   onDeleteTask={handleDeleteTask}
                   onUpdateTask={handleUpdateTask}

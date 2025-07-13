@@ -1,15 +1,16 @@
 'use client';
 
-import { Palette, CalendarDays, Clock, Trash2, PlusCircle, PenSquare } from 'lucide-react';
+import { Palette, CalendarDays, Clock, Trash2, PlusCircle, PenSquare, Rows, Columns } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import CustomizationPanel from '@/components/customization-panel';
 import CreateTaskForm from '@/components/create-task-form';
 import { SidebarHeader, SidebarContent } from '@/components/ui/sidebar';
-import type { DaysOfWeek, Task } from '@/app/page';
+import type { DaysOfWeek, Task, ScheduleLayout } from '@/app/page';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
+import { Switch } from './ui/switch';
 import { useState } from 'react';
 
 interface ControlsSidebarProps {
@@ -19,11 +20,15 @@ interface ControlsSidebarProps {
   onAddHour: (hour: string) => void;
   onRemoveHour: (hour: string) => void;
   onAddTask: (task: Omit<Task, 'id'>) => void;
+  layout: ScheduleLayout;
+  onLayoutChange: (layout: ScheduleLayout) => void;
 }
 
 const allDays: DaysOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-export default function ControlsSidebar({ visibleDays, onToggleDay, hours, onAddHour, onRemoveHour, onAddTask }: ControlsSidebarProps) {
+export default function ControlsSidebar({ 
+  visibleDays, onToggleDay, hours, onAddHour, onRemoveHour, onAddTask, layout, onLayoutChange 
+}: ControlsSidebarProps) {
   const [newHour, setNewHour] = useState('');
 
   const handleAddHour = (e: React.FormEvent) => {
@@ -38,7 +43,7 @@ export default function ControlsSidebar({ visibleDays, onToggleDay, hours, onAdd
         <h2 className="text-lg font-semibold pl-2">Dashboard</h2>
       </SidebarHeader>
       <SidebarContent className="p-0">
-        <Accordion type="multiple" defaultValue={['create-task', 'days-hours']} className="w-full">
+        <Accordion type="multiple" defaultValue={['create-task', 'view-options']} className="w-full">
            <AccordionItem value="create-task" className="border-b">
             <AccordionTrigger className="px-4 text-base hover:no-underline rounded-md hover:bg-sidebar-accent">
               <div className="flex items-center gap-2">
@@ -50,14 +55,28 @@ export default function ControlsSidebar({ visibleDays, onToggleDay, hours, onAdd
               <CreateTaskForm hours={hours} visibleDays={visibleDays} onAddTask={onAddTask} />
             </AccordionContent>
           </AccordionItem>
-          <AccordionItem value="days-hours" className="border-b">
+          <AccordionItem value="view-options" className="border-b">
             <AccordionTrigger className="px-4 text-base hover:no-underline rounded-md hover:bg-sidebar-accent">
               <div className="flex items-center gap-2">
                 <CalendarDays className="h-5 w-5 text-primary" />
-                <span>Days & Hours</span>
+                <span>View Options</span>
               </div>
             </AccordionTrigger>
             <AccordionContent className="p-4 pt-0 space-y-6">
+              <div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="layout-switch" className="font-semibold">Swap Axes</Label>
+                    <div className="flex items-center gap-2">
+                        <Rows className="h-4 w-4 text-muted-foreground"/>
+                        <Switch 
+                            id="layout-switch"
+                            checked={layout === 'horizontal'}
+                            onCheckedChange={(checked) => onLayoutChange(checked ? 'horizontal' : 'vertical')}
+                        />
+                        <Columns className="h-4 w-4 text-muted-foreground"/>
+                    </div>
+                  </div>
+              </div>
               <div>
                 <h4 className="font-semibold mb-2">Visible Days</h4>
                 <div className="grid grid-cols-2 gap-2">

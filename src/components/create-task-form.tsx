@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { DaysOfWeek, Task } from '@/app/page';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { Label } from './ui/label';
+import { cn } from '@/lib/utils';
 
 interface CreateTaskFormProps {
   hours: string[];
@@ -17,11 +18,21 @@ interface CreateTaskFormProps {
   onAddTask: (task: Omit<Task, 'id'>) => void;
 }
 
+const taskColors = [
+    { id: 'blue', value: 'bg-blue-500/30', label: 'Blue' },
+    { id: 'green', value: 'bg-green-500/30', label: 'Green' },
+    { id: 'red', value: 'bg-red-500/30', label: 'Red' },
+    { id: 'yellow', value: 'bg-yellow-500/30', label: 'Yellow' },
+    { id: 'purple', value: 'bg-purple-500/30', label: 'Purple' },
+    { id: 'pink', value: 'bg-pink-500/30', label: 'Pink' },
+];
+
 const formSchema = z.object({
   name: z.string().min(1, 'Task name is required.'),
   day: z.string().min(1, 'Please select a day.'),
   startTime: z.string().min(1, 'Start time is required.'),
-  duration: z.coerce.number().min(1, 'Duration must be at least 1 hour.').max(12, 'Duration cannot exceed 12 hours.'),
+  duration: z.coerce.number().min(0.5, 'Duration must be at least 30 minutes.').max(12, 'Duration cannot exceed 12 hours.'),
+  color: z.string().min(1, 'Please select a color.'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -34,25 +45,30 @@ export default function CreateTaskForm({ hours, visibleDays, onAddTask }: Create
       day: visibleDays[0] || 'Monday',
       startTime: hours[0] || '09:00',
       duration: 1,
+      color: taskColors[0].value,
     },
   });
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
-    const startHour = parseInt(data.startTime.split(':')[0]);
-    const endHour = startHour + data.duration;
-    
-    if (endHour > 24) {
+    const startMinutes = parseInt(data.startTime.split(':')[0]) * 60 + parseInt(data.startTime.split(':')[1]);
+    const durationMinutes = data.duration * 60;
+    const endMinutes = startMinutes + durationMinutes;
+
+    if (endMinutes > 24 * 60) {
         form.setError('duration', { type: 'manual', message: 'Task cannot extend past midnight.' });
         return;
     }
 
-    const endTime = `${endHour.toString().padStart(2, '0')}:00`;
+    const endHour = Math.floor(endMinutes / 60).toString().padStart(2, '0');
+    const endMinute = (endMinutes % 60).toString().padStart(2, '0');
+    const endTime = `${endHour}:${endMinute}`;
 
     onAddTask({
       name: data.name,
       day: data.day as DaysOfWeek,
       startTime: data.startTime,
       endTime: endTime,
+      color: data.color
     });
     form.reset();
   };
@@ -122,11 +138,44 @@ export default function CreateTaskForm({ hours, visibleDays, onAddTask }: Create
                 <FormItem>
                     <FormLabel>Duration (hours)</FormLabel>
                     <FormControl>
-                        <Input type="number" min="1" {...field} />
+                        <Input type="number" min="0.5" step="0.5" {...field} />
                     </FormControl>
                     <FormMessage />
                 </FormItem>
             )}
+        />
+        <FormField
+          control={form.control}
+          name="color"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel>Color</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  className="flex flex-wrap gap-2"
+                >
+                  {taskColors.map(color => (
+                    <FormItem key={color.id} className="flex items-center space-x-2 space-y-0">
+                      <FormControl>
+                        <RadioGroupItem value={color.value} className="sr-only" />
+                      </FormControl>
+                      <Label
+                        className={cn(
+                          'w-8 h-8 rounded-full border-2 border-transparent cursor-pointer',
+                          color.value,
+                          field.value === color.value && 'ring-2 ring-ring ring-offset-2 ring-offset-background'
+                        )}
+                        title={color.label}
+                      />
+                    </FormItem>
+                  ))}
+                </RadioGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
         <Button type="submit" className="w-full">Add Task</Button>
       </form>
