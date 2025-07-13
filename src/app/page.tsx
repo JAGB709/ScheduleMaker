@@ -21,7 +21,7 @@ export interface Task {
   day: DaysOfWeek;
   startTime: string; // "HH:mm"
   endTime: string;   // "HH:mm"
-  color: string; // e.g., 'bg-blue-200'
+  color: string;
 }
 
 export default function Home() {
@@ -150,8 +150,29 @@ export default function Home() {
     });
   };
 
-  const handleAddTask = (task: Omit<Task, 'id'>) => {
-    if (isTimeSlotTaken(task.day, task.startTime, task.endTime)) {
+  const handleAddTask = (task: Omit<Task, 'id' | 'endTime'> & { duration?: number, endTime?: string }) => {
+    let endTime = task.endTime;
+
+    if (task.duration) {
+      const startMinutes = parseInt(task.startTime.split(':')[0]) * 60 + parseInt(task.startTime.split(':')[1]);
+      const durationMinutes = task.duration * 60;
+      const endMinutes = startMinutes + durationMinutes;
+
+      if (endMinutes > 24 * 60) {
+        toast({ title: "Task cannot extend past midnight.", variant: "destructive" });
+        return;
+      }
+      const endHour = Math.floor(endMinutes / 60).toString().padStart(2, '0');
+      const endMinute = (endMinutes % 60).toString().padStart(2, '0');
+      endTime = `${endHour}:${endMinute}`;
+    }
+
+    if (!endTime) {
+        toast({ title: "Invalid task details", description: "Task must have an end time or duration.", variant: "destructive" });
+        return;
+    }
+
+    if (isTimeSlotTaken(task.day, task.startTime, endTime)) {
       toast({
         title: "Time slot conflict",
         description: "This time slot is already taken by another task.",
@@ -159,25 +180,12 @@ export default function Home() {
       });
       return;
     }
-    const newTask: Task = { ...task, id: Date.now().toString() };
+    const newTask: Task = { ...task, id: Date.now().toString(), endTime: endTime };
     setTasks(prevTasks => [...prevTasks, newTask]);
     toast({
         title: "Task created!",
         description: `Task "${task.name}" has been added to the schedule.`,
     })
-  };
-
-  const handleQuickAddTask = (day: DaysOfWeek, startTime: string) => {
-    const taskName = window.prompt("Enter task name:");
-    if (!taskName) return;
-
-    const startMinutes = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
-    const endMinutes = startMinutes + 60;
-    const endHour = Math.floor(endMinutes / 60).toString().padStart(2, '0');
-    const endMinute = (endMinutes % 60).toString().padStart(2, '0');
-    const endTime = `${endHour}:${endMinute}`;
-    
-    handleAddTask({ name: taskName, day, startTime, endTime, color: 'bg-primary/20' });
   };
   
   const handleDeleteTask = (taskId: string) => {
@@ -221,7 +229,7 @@ export default function Home() {
                   hours={hours}
                   visibleDays={visibleDays}
                   layout={layout}
-                  onQuickAddTask={handleQuickAddTask}
+                  onNewTask={handleAddTask}
                   onDeleteTask={handleDeleteTask}
                   onUpdateTask={handleUpdateTask}
                 />

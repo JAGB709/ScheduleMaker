@@ -19,7 +19,7 @@ interface ControlsSidebarProps {
   hours: string[];
   onAddHour: (hour: string) => void;
   onRemoveHour: (hour: string) => void;
-  onAddTask: (task: Omit<Task, 'id'>) => void;
+  onAddTask: (task: Omit<Task, 'id' | 'endTime'> & { duration: number }) => void;
   layout: ScheduleLayout;
   onLayoutChange: (layout: ScheduleLayout) => void;
 }

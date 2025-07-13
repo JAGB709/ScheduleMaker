@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 interface CreateTaskFormProps {
   hours: string[];
   visibleDays: DaysOfWeek[];
-  onAddTask: (task: Omit<Task, 'id'>) => void;
+  onAddTask: (task: Omit<Task, 'id' | 'endTime'> & { duration: number }) => void;
 }
 
 const taskColors = [
@@ -50,24 +50,11 @@ export default function CreateTaskForm({ hours, visibleDays, onAddTask }: Create
   });
 
   const onSubmit: SubmitHandler<FormValues> = (data) => {
-    const startMinutes = parseInt(data.startTime.split(':')[0]) * 60 + parseInt(data.startTime.split(':')[1]);
-    const durationMinutes = data.duration * 60;
-    const endMinutes = startMinutes + durationMinutes;
-
-    if (endMinutes > 24 * 60) {
-        form.setError('duration', { type: 'manual', message: 'Task cannot extend past midnight.' });
-        return;
-    }
-
-    const endHour = Math.floor(endMinutes / 60).toString().padStart(2, '0');
-    const endMinute = (endMinutes % 60).toString().padStart(2, '0');
-    const endTime = `${endHour}:${endMinute}`;
-
     onAddTask({
       name: data.name,
       day: data.day as DaysOfWeek,
       startTime: data.startTime,
-      endTime: endTime,
+      duration: data.duration,
       color: data.color
     });
     form.reset();
@@ -120,7 +107,7 @@ export default function CreateTaskForm({ hours, visibleDays, onAddTask }: Create
                      <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a time" />
-                      </SelectTrigger>
+                      </Trigger>
                     </FormControl>
                     <SelectContent>
                         {hours.map(hour => <SelectItem key={hour} value={hour}>{hour}</SelectItem>)}
