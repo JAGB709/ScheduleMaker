@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useRef, useEffect, Suspense } from 'react';
+import { useState, useRef, useEffect, Suspense, use } from 'react';
 import { useSearchParams } from 'next/navigation';
 import html2canvas from 'html2canvas';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
