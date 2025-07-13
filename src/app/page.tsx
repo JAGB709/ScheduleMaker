@@ -73,9 +73,13 @@ export default function Home() {
       const cells = scheduleRef.current.querySelectorAll('[contenteditable="true"]');
       cells.forEach(cell => (cell as HTMLElement).style.border = '1px solid transparent');
 
+      const backgroundColorValue = getComputedStyle(document.documentElement).getPropertyValue('--background').trim();
+      const backgroundColor = `hsl(${backgroundColorValue})`;
+
+
       html2canvas(scheduleRef.current, {
         useCORS: true,
-        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--background').trim(),
+        backgroundColor: backgroundColor,
         scale: 2,
         onclone: (document) => {
             // This runs in the cloned document before rendering
