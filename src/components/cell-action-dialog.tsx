@@ -60,7 +60,7 @@ export function CellActionDialog({
                 <p className="text-sm text-center text-muted-foreground py-4">No tasks in this specific slot.</p>
             )}
         </div>
-        <DialogFooter className="sm:justify-between flex-row-reverse">
+        <DialogFooter className="sm:justify-between flex-row-reverse w-full">
             <Button onClick={onCreateNew}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Create New Task

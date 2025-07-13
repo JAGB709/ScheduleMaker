@@ -108,11 +108,11 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
         setEditDialogOpen(true);
     };
     
-    const handleCreateNewInSlot = () => {
-        if (!selectedCellInfo) return;
+    const handleCreateNewInSlot = (cell: Cell | null) => {
+        if (!cell) return;
         const taskName = window.prompt('Enter task name:');
         if (taskName) {
-            const startTime = selectedCellInfo.hour;
+            const startTime = cell.hour;
             const nextHourIndex = sortedHours.indexOf(startTime) + 1;
             let endTime;
             if (nextHourIndex < sortedHours.length) {
@@ -123,7 +123,7 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
                 const endMinute = (lastHourMinutes % 60).toString().padStart(2, '0');
                 endTime = `${endHour}:${endMinute}`;
             }
-            onNewTask({ name: taskName, day: selectedCellInfo.day, startTime, endTime, color: '#A9A9A9' });
+            onNewTask({ name: taskName, day: cell.day, startTime, endTime, color: '#A9A9A9' });
         }
         setActionDialogOpen(false);
     };
@@ -300,8 +300,8 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
                                     const durationMinutes = endMinutes - startMinutes;
                                     const topOffset = (startMinutes % 60);
                                     
-                                    const cellHeightRem = 4; // h-16 = 4rem
-                                    const oneMinuteInRem = cellHeightRem / 60;
+                                    const cellHeightRem = 4; // h-16 = 4rem, md:h-20 = 5rem
+                                    const oneMinuteInRem = (window.innerWidth < 768 ? 4 : 5) / 60;
                                     
                                     let sizeStyle: React.CSSProperties = {};
                                     let positionStyle: React.CSSProperties = {
@@ -360,7 +360,7 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
             tasks={selectedCellTasks}
             onEdit={handleEditClick}
             onDelete={onDeleteTask}
-            onCreateNew={handleCreateNewInSlot}
+            onCreateNew={() => handleCreateNewInSlot(selectedCellInfo)}
         />
         {taskToEdit && (
             <EditTaskDialog
