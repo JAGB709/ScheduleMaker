@@ -79,7 +79,7 @@ export default function ControlsSidebar({
               </div>
               <div>
                 <h4 className="font-semibold mb-2">Visible Days</h4>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                   {allDays.map(day => (
                     <div key={day} className="flex items-center space-x-2">
                       <Checkbox
