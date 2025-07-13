@@ -49,6 +49,8 @@ export default function HomePage() {
     const newScheduleName = prompt("Enter a name for your new schedule:");
     if (newScheduleName && newScheduleName.trim() !== '') {
       const newScheduleId = `schedule_${Date.now()}`;
+      
+      // Data for the detailed schedule page
       const newScheduleData = {
         id: newScheduleId,
         name: newScheduleName,
@@ -57,9 +59,9 @@ export default function HomePage() {
         visibleDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
         layout: 'vertical',
       };
-      
       localStorage.setItem(`scheduleSnap-data-${newScheduleId}`, JSON.stringify(newScheduleData));
       
+      // Meta-data for the home page card
       const newMetaSchedule: Schedule = {
           id: newScheduleId,
           name: newScheduleName,
@@ -68,9 +70,12 @@ export default function HomePage() {
       };
       
       const updatedSchedules = [newMetaSchedule, ...schedules];
-      setSchedules(updatedSchedules); // Update state to re-render
       localStorage.setItem('scheduleSnap-schedules', JSON.stringify(updatedSchedules));
       
+      // Update state to re-render UI
+      setSchedules(updatedSchedules); 
+      
+      // Redirect to the new schedule's page
       router.push(`/schedule/${newScheduleId}`);
     }
   };
