@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, use } from 'react';
 import html2canvas from 'html2canvas';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import ControlsSidebar from '@/components/controls-sidebar';
@@ -35,7 +35,7 @@ interface ScheduleData {
 }
 
 export default function SchedulePage({ params }: { params: { id: string } }) {
-  const scheduleId = params.id;
+  const { id: scheduleId } = use(params);
   const router = useRouter();
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);

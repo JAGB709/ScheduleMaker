@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { CreateScheduleDialog } from "@/components/create-schedule-dialog";
+import { NewScheduleDialog } from "@/components/new-schedule-dialog";
 
 export interface Schedule {
   id: string;
@@ -161,7 +161,7 @@ export default function HomePage() {
           </div>
         )}
       </main>
-      <CreateScheduleDialog
+      <NewScheduleDialog
         isOpen={isCreateDialogOpen}
         onClose={() => setCreateDialogOpen(false)}
         onCreate={handleCreateNewSchedule}

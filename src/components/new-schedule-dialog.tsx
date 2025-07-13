@@ -11,28 +11,36 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 
-interface CreateScheduleDialogProps {
+interface NewScheduleDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onCreate: (name: string) => void;
 }
 
-export function CreateScheduleDialog({
+export function NewScheduleDialog({
   isOpen,
   onClose,
   onCreate,
-}: CreateScheduleDialogProps) {
+}: NewScheduleDialogProps) {
   const [scheduleName, setScheduleName] = useState("");
 
   const handleCreate = () => {
     if (scheduleName.trim() !== "") {
       onCreate(scheduleName);
+      setScheduleName("");
       onClose();
     }
   };
+  
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setScheduleName("");
+    }
+    onClose();
+  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create New Schedule</DialogTitle>
@@ -43,7 +51,8 @@ export function CreateScheduleDialog({
         <Input
           value={scheduleName}
           onChange={(e) => setScheduleName(e.target.value)}
-          placeholder="Schedule Name"
+          placeholder="e.g., My Work Week"
+          onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
         />
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>

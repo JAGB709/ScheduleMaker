@@ -7,6 +7,7 @@ import type { Task, DaysOfWeek, ScheduleLayout } from '@/app/schedule/[id]/page'
 import { cn } from '@/lib/utils';
 import { CellActionDialog } from './cell-action-dialog';
 import { EditTaskDialog } from './edit-task-dialog';
+import { CreateTaskDialog } from './create-task-dialog';
 
 interface ScheduleDisplayProps {
   tasks: Task[];
@@ -78,6 +79,8 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
     
     const [isActionDialogOpen, setActionDialogOpen] = useState(false);
     const [isEditDialogOpen, setEditDialogOpen] = useState(false);
+    const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
+
     const [selectedCellTasks, setSelectedCellTasks] = useState<Task[]>([]);
     const [selectedCellInfo, setSelectedCellInfo] = useState<Cell | null>(null);
     const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
@@ -108,24 +111,10 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
         setEditDialogOpen(true);
     };
     
-    const handleCreateNewInSlot = (cell: Cell | null) => {
-        if (!cell) return;
-        const taskName = window.prompt('Enter task name:');
-        if (taskName) {
-            const startTime = cell.hour;
-            const nextHourIndex = sortedHours.indexOf(startTime) + 1;
-            let endTime;
-            if (nextHourIndex < sortedHours.length) {
-                endTime = sortedHours[nextHourIndex];
-            } else {
-                const lastHourMinutes = timeToMinutes(startTime) + 60;
-                const endHour = Math.floor(lastHourMinutes / 60).toString().padStart(2, '0');
-                const endMinute = (lastHourMinutes % 60).toString().padStart(2, '0');
-                endTime = `${endHour}:${endMinute}`;
-            }
-            onNewTask({ name: taskName, day: cell.day, startTime, endTime, color: '#A9A9A9' });
-        }
-        setActionDialogOpen(false);
+    const handleCreateNewClick = () => {
+      if (!selectedCellInfo) return;
+      setActionDialogOpen(false);
+      setCreateDialogOpen(true);
     };
 
     const handleMouseDown = (day: DaysOfWeek, hour: string) => {
@@ -160,48 +149,9 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
             setEndCell(null);
             return;
         }
-
-        const taskName = window.prompt('Enter task name:');
-        if (taskName) {
-            let day: DaysOfWeek;
-            let startTime: string;
-            let endTime: string;
-
-            if (layout === 'vertical') {
-                day = startCell.day;
-                const startIdx = sortedHours.indexOf(startCell.hour);
-                const endIdx = sortedHours.indexOf(endCell.hour);
-                startTime = sortedHours[Math.min(startIdx, endIdx)];
-                const finalEndCellHour = sortedHours[Math.max(startIdx, endIdx)];
-                const nextHourIndex = sortedHours.indexOf(finalEndCellHour) + 1;
-
-                if (nextHourIndex < sortedHours.length) {
-                    endTime = sortedHours[nextHourIndex];
-                } else {
-                    const lastHourMinutes = timeToMinutes(finalEndCellHour) + 60;
-                    const endHour = Math.floor(lastHourMinutes / 60).toString().padStart(2, '0');
-                    const endMinute = (lastHourMinutes % 60).toString().padStart(2, '0');
-                    endTime = `${endHour}:${endMinute}`;
-                }
-            } else { // horizontal
-                startTime = startCell.hour;
-                const startDayIndex = sortedVisibleDays.indexOf(startCell.day);
-                const endDayIndex = sortedVisibleDays.indexOf(endCell.day);
-                day = sortedVisibleDays[Math.min(startDayIndex, endDayIndex)];
-                
-                const nextHourIndex = sortedHours.indexOf(startTime) + 1;
-                if (nextHourIndex < sortedHours.length) {
-                    endTime = sortedHours[nextHourIndex];
-                } else {
-                    const lastHourMinutes = timeToMinutes(startTime) + 60;
-                    const endHour = Math.floor(lastHourMinutes / 60).toString().padStart(2, '0');
-                    const endMinute = (lastHourMinutes % 60).toString().padStart(2, '0');
-                    endTime = `${endHour}:${endMinute}`;
-                }
-            }
-
-            onNewTask({ name: taskName, day, startTime, endTime, color: '#A9A9A9' });
-        }
+        
+        setSelectedCellInfo(startCell);
+        setCreateDialogOpen(true);
         
         setIsDragging(false);
         setStartCell(null);
@@ -360,7 +310,7 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
             tasks={selectedCellTasks}
             onEdit={handleEditClick}
             onDelete={onDeleteTask}
-            onCreateNew={() => handleCreateNewInSlot(selectedCellInfo)}
+            onCreateNew={handleCreateNewClick}
         />
         {taskToEdit && (
             <EditTaskDialog
@@ -374,6 +324,17 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
                 hours={sortedHours}
                 visibleDays={sortedVisibleDays}
             />
+        )}
+        {selectedCellInfo && (
+          <CreateTaskDialog
+            isOpen={isCreateDialogOpen}
+            onClose={() => setCreateDialogOpen(false)}
+            onAddTask={onNewTask}
+            hours={sortedHours}
+            visibleDays={sortedVisibleDays}
+            defaultDay={selectedCellInfo.day}
+            defaultStartTime={selectedCellInfo.hour}
+          />
         )}
         </div>
     );

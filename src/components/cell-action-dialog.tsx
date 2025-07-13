@@ -29,6 +29,11 @@ export function CellActionDialog({
   onCreateNew,
 }: CellActionDialogProps) {
 
+  const handleCreateClick = () => {
+    onClose();
+    onCreateNew();
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
@@ -61,7 +66,7 @@ export function CellActionDialog({
             )}
         </div>
         <DialogFooter className="sm:justify-between flex-row-reverse w-full">
-            <Button onClick={onCreateNew}>
+            <Button onClick={handleCreateClick}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Create New Task
             </Button>
