@@ -223,6 +223,10 @@ export default function SchedulePage({ params }: { params: { id: string } }) {
   
   const handleUpdateTask = (updatedTask: Task) => {
       updateScheduleData(prev => ({...prev, tasks: prev.tasks.map(task => task.id === updatedTask.id ? updatedTask : task) }));
+      toast({
+        title: "Task updated!",
+        description: `Task "${updatedTask.name}" has been saved.`,
+    })
   };
   
   const handleLayoutChange = (layout: ScheduleLayout) => {

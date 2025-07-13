@@ -1,12 +1,14 @@
 
 'use client';
-import { forwardRef, useMemo, useState, useRef, useEffect } from 'react';
+import { forwardRef, useMemo, useState, useEffect, MouseEvent } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Edit } from 'lucide-react';
 import type { Task, DaysOfWeek, ScheduleLayout } from '@/app/schedule/[id]/page';
 import { cn } from '@/lib/utils';
+import { CellActionDialog } from './cell-action-dialog';
+import { EditTaskDialog } from './edit-task-dialog';
 
 interface ScheduleDisplayProps {
   tasks: Task[];
@@ -38,28 +40,32 @@ const getOverlapLayout = (tasks: Task[]) => {
 
     const overlapGroups: Task[][] = [];
     
+    // This logic needs to be refined for better visual grouping
+    // For now, we'll just group tasks that start at the same time or overlap.
+    const columns: Task[][] = [];
     for (const task of sortedTasks) {
         let placed = false;
-        for (const group of overlapGroups) {
-            const lastTaskInGroup = group[group.length - 1];
-            if (timeToMinutes(task.startTime) < timeToMinutes(lastTaskInGroup.endTime)) {
-                group.push(task);
+        for (const col of columns) {
+            const lastTaskInCol = col[col.length - 1];
+            if (timeToMinutes(task.startTime) >= timeToMinutes(lastTaskInCol.endTime)) {
+                col.push(task);
                 placed = true;
                 break;
             }
         }
         if (!placed) {
-            overlapGroups.push([task]);
+            columns.push([task]);
         }
     }
     
-    for (const group of overlapGroups) {
-        for (let i = 0; i < group.length; i++) {
-            const task = group[i];
-            const total = group.length;
-            const width = 100 / total;
-            const left = i * width;
-            layout.set(task.id, { width, left, total });
+    for (let i = 0; i < columns.length; i++) {
+        const col = columns[i];
+        for (const task of col) {
+            layout.set(task.id, {
+                width: 100 / columns.length,
+                left: i * (100 / columns.length),
+                total: columns.length,
+            });
         }
     }
     
@@ -68,21 +74,67 @@ const getOverlapLayout = (tasks: Task[]) => {
 
 
 const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
-    ({ tasks, hours, visibleDays, layout, onNewTask, onDeleteTask }, ref) => {
+    ({ tasks, hours, visibleDays, layout, onNewTask, onDeleteTask, onUpdateTask }, ref) => {
     
     const [isDragging, setIsDragging] = useState(false);
     const [startCell, setStartCell] = useState<Cell | null>(null);
     const [endCell, setEndCell] = useState<Cell | null>(null);
     
+    const [isActionDialogOpen, setActionDialogOpen] = useState(false);
+    const [isEditDialogOpen, setEditDialogOpen] = useState(false);
+    const [selectedCellTasks, setSelectedCellTasks] = useState<Task[]>([]);
+    const [selectedCellInfo, setSelectedCellInfo] = useState<Cell | null>(null);
+    const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+
     const sortedHours = useMemo(() => [...hours].sort(), [hours]);
     const dayOrder: DaysOfWeek[] = useMemo(() => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], []);
     const sortedVisibleDays = useMemo(() => dayOrder.filter(day => visibleDays.includes(day)), [visibleDays, dayOrder]);
 
+    const handleCellClick = (e: MouseEvent, day: DaysOfWeek, hour: string, tasksInCell: Task[]) => {
+        e.preventDefault();
+        // Prevent dialog from opening when starting a drag
+        if (e.detail > 0 && !isDragging) {
+             if (tasksInCell.length > 0) {
+                setSelectedCellTasks(tasksInCell);
+                setSelectedCellInfo({day, hour});
+                setActionDialogOpen(true);
+            }
+        }
+    };
+    
+    const handleEditClick = (task: Task) => {
+        setTaskToEdit(task);
+        setActionDialogOpen(false);
+        setEditDialogOpen(true);
+    };
+    
+    const handleCreateNewInSlot = () => {
+        if (!selectedCellInfo) return;
+        const taskName = window.prompt('Enter task name:');
+        if (taskName) {
+            const startTime = selectedCellInfo.hour;
+            const nextHourIndex = sortedHours.indexOf(startTime) + 1;
+            let endTime;
+            if (nextHourIndex < sortedHours.length) {
+                endTime = sortedHours[nextHourIndex];
+            } else {
+                const lastHourMinutes = timeToMinutes(startTime) + 60;
+                const endHour = Math.floor(lastHourMinutes / 60).toString().padStart(2, '0');
+                const endMinute = (lastHourMinutes % 60).toString().padStart(2, '0');
+                endTime = `${endHour}:${endMinute}`;
+            }
+            onNewTask({ name: taskName, day: selectedCellInfo.day, startTime, endTime, color: '#A9A9A9' });
+        }
+        setActionDialogOpen(false);
+    };
+
     const handleMouseDown = (day: DaysOfWeek, hour: string) => {
-      setIsDragging(true);
-      const cell = { day, hour };
-      setStartCell(cell);
-      setEndCell(cell);
+      setTimeout(() => {
+          setIsDragging(true);
+          const cell = { day, hour };
+          setStartCell(cell);
+          setEndCell(cell);
+      }, 150); // Small delay to distinguish click from drag
     };
 
     const handleMouseEnter = (day: DaysOfWeek, hour: string) => {
@@ -151,9 +203,13 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
     };
 
     useEffect(() => {
-        const handleDocMouseUp = (e: MouseEvent) => {
+        const handleDocMouseUp = () => {
              if (isDragging) {
                 handleMouseUp();
+             } else {
+                setStartCell(null);
+                setEndCell(null);
+                setIsDragging(false);
              }
         };
         document.addEventListener('mouseup', handleDocMouseUp);
@@ -190,7 +246,7 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
     return (
         <div ref={ref} className="bg-background p-1 select-none w-full overflow-x-auto">
         <Card className="border shadow-sm">
-            <Table onMouseUp={handleMouseUp} className="border-collapse w-full table-fixed">
+            <Table onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} className="border-collapse w-full table-fixed">
             <TableHeader>
                 <TableRow className="hover:bg-card">
                     <TableHead className="w-24 md:w-28 border-r p-2 text-center sticky left-0 bg-card z-20 text-xs md:text-sm">
@@ -220,28 +276,31 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
                             }
                         });
                         
-                        const overlapLayout = getOverlapLayout(tasksInCell);
+                        const tasksStartingInCell = tasksInCell.filter(t => {
+                            if (layout === 'vertical') {
+                                return t.startTime === hour;
+                            } else {
+                                return t.day === day;
+                            }
+                        });
+
+                        const tasksForThisCellLayout = tasks.filter(t => t.day === day && timeToMinutes(t.startTime) < timeToMinutes(hour) + 60 && timeToMinutes(t.endTime) > timeToMinutes(hour));
+                        const overlapLayout = getOverlapLayout(tasksForThisCellLayout);
                         
                         return (
                             <TableCell
                                 key={cellKey}
                                 onMouseDown={(e) => { e.preventDefault(); handleMouseDown(day, hour); }}
                                 onMouseEnter={(e) => { e.preventDefault(); handleMouseEnter(day, hour); }}
+                                onClick={(e) => handleCellClick(e, day, hour, tasksInCell)}
                                 className={cn(
-                                    "p-0 border-r align-top min-h-[4rem] h-16 md:h-20 min-w-[6rem] md:min-w-[8rem] cursor-cell transition-colors relative",
-                                    selectedCells[cellKey] ? 'bg-accent/70' : 'hover:bg-accent/50'
+                                    "p-0 border-r align-top min-h-[4rem] h-16 md:h-20 min-w-[6rem] md:min-w-[8rem] cursor-pointer transition-colors relative",
+                                    selectedCells[cellKey] ? 'bg-accent/70' : 'hover:bg-accent/50',
+                                    tasksInCell.length > 0 && !selectedCells[cellKey] ? 'bg-muted/20' : ''
                                 )}
                             >
                                 <div className={cn("absolute inset-0 flex", layout === 'vertical' ? 'flex-row' : 'flex-col')}>
-                                {tasksInCell.map(task => {
-                                    // Only render the task block if it starts in this cell
-                                    if (task.startTime !== hour && layout === 'vertical') {
-                                        return null;
-                                    }
-                                     if (task.day !== day && layout === 'horizontal') {
-                                        return null;
-                                    }
-
+                                {tasksStartingInCell.map(task => {
                                     const layoutProps = overlapLayout.get(task.id);
                                     if (!layoutProps) return null;
 
@@ -250,8 +309,6 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
                                     const durationMinutes = endMinutes - startMinutes;
 
                                     const oneHourSlotHeight = 100; // as a percentage of the cell height
-                                    const oneDaySlotWidth = 100; // as a percentage of cell width
-
                                     let sizeStyle: React.CSSProperties = {};
                                     let positionStyle: React.CSSProperties = {
                                         backgroundColor: task.color,
@@ -270,32 +327,27 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
                                         sizeStyle.width = `${layoutProps.width}%`;
                                         positionStyle.left = `${layoutProps.left}%`;
                                         positionStyle.top = 0;
-                                        positionStyle.zIndex = layoutProps.total > 1 ? 10 + layoutProps.left : 10;
+                                        positionStyle.zIndex = 10 + layoutProps.left;
                                     } else {
-                                        // TODO: Implement horizontal multi-day span if needed
-                                        sizeStyle.width = '100%'; 
+                                        sizeStyle.width = '100%';
                                         sizeStyle.height = `${layoutProps.width}%`;
                                         positionStyle.top = `${layoutProps.left}%`;
                                         positionStyle.left = 0;
-                                        positionStyle.zIndex = layoutProps.total > 1 ? 10 + layoutProps.left : 10;
+                                        positionStyle.zIndex = 10 + layoutProps.left;
                                     }
                                     
                                     return (
                                         <div
                                             key={task.id}
                                             style={{ ...sizeStyle, ...positionStyle}}
-                                            className="absolute p-1 rounded-sm text-[10px] md:text-xs overflow-hidden group border-l border-t border-black/10"
+                                            className="absolute p-1 rounded-sm text-[10px] md:text-xs overflow-hidden group border-l border-t border-black/10 cursor-pointer"
+                                            onClick={(e) => {
+                                                e.stopPropagation(); // prevent cell click from firing
+                                                handleCellClick(e as any, day, hour, tasksInCell);
+                                            }}
                                         >
                                             <p className="font-semibold">{task.name}</p>
                                             <p className="opacity-80">{task.startTime} - {task.endTime}</p>
-                                             <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className={cn("absolute top-0 right-0 h-5 w-5 opacity-0 group-hover:opacity-100", textColor === 'black' ? 'text-destructive hover:bg-black/10' : 'text-white hover:bg-white/20')}
-                                                onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id); }}
-                                            >
-                                                <Trash2 className="h-3 w-3" />
-                                            </Button>
                                         </div>
                                     )
                                 })}
@@ -308,6 +360,27 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
             </TableBody>
             </Table>
         </Card>
+         <CellActionDialog
+            isOpen={isActionDialogOpen}
+            onClose={() => setActionDialogOpen(false)}
+            tasks={selectedCellTasks}
+            onEdit={handleEditClick}
+            onDelete={onDeleteTask}
+            onCreateNew={handleCreateNewInSlot}
+        />
+        {taskToEdit && (
+            <EditTaskDialog
+                isOpen={isEditDialogOpen}
+                onClose={() => {
+                    setEditDialogOpen(false);
+                    setTaskToEdit(null);
+                }}
+                task={taskToEdit}
+                onUpdateTask={onUpdateTask}
+                hours={sortedHours}
+                visibleDays={sortedVisibleDays}
+            />
+        )}
         </div>
     );
 });
