@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { CreateScheduleDialog } from "@/components/create-schedule-dialog";
 
 export interface Schedule {
   id: string;
@@ -28,6 +29,7 @@ export interface Schedule {
 
 export default function HomePage() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -45,8 +47,7 @@ export default function HomePage() {
     }
   }, []);
 
-  const handleCreateNewSchedule = () => {
-    const newScheduleName = prompt("Enter a name for your new schedule:");
+  const handleCreateNewSchedule = (newScheduleName: string) => {
     if (newScheduleName && newScheduleName.trim() !== '') {
       const newScheduleId = `schedule_${Date.now()}`;
       
@@ -93,7 +94,7 @@ export default function HomePage() {
         <h1 className="text-xl font-bold tracking-tight">My Schedules</h1>
         {schedules.length > 0 && (
           <div className="ml-auto">
-            <Button onClick={handleCreateNewSchedule}>
+            <Button onClick={() => setCreateDialogOpen(true)}>
               <PlusCircle className="mr-2" />
               Create New Schedule
             </Button>
@@ -105,7 +106,7 @@ export default function HomePage() {
           <div className="flex flex-col items-center justify-center text-center border-2 border-dashed border-muted rounded-lg p-12" style={{height: 'calc(100vh - 12rem)'}}>
             <h2 className="text-2xl font-semibold mb-2">No schedules found</h2>
             <p className="text-muted-foreground mb-4">Click the button below to create your first schedule.</p>
-             <Button onClick={handleCreateNewSchedule} size="lg">
+             <Button onClick={() => setCreateDialogOpen(true)} size="lg">
               <PlusCircle className="mr-2" />
               Create New Schedule
             </Button>
@@ -160,6 +161,11 @@ export default function HomePage() {
           </div>
         )}
       </main>
+      <CreateScheduleDialog
+        isOpen={isCreateDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        onCreate={handleCreateNewSchedule}
+      />
     </div>
   );
 }

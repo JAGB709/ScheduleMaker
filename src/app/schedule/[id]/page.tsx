@@ -43,6 +43,7 @@ export default function SchedulePage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   
   useEffect(() => {
+    if (!scheduleId) return;
     const savedDataString = localStorage.getItem(`scheduleSnap-data-${scheduleId}`);
     if (savedDataString) {
       try {
