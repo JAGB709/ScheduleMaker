@@ -107,7 +107,7 @@ export default function CreateTaskForm({ hours, visibleDays, onAddTask }: Create
                      <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a time" />
-                      </Trigger>
+                      </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                         {hours.map(hour => <SelectItem key={hour} value={hour}>{hour}</SelectItem>)}
