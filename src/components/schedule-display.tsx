@@ -38,10 +38,6 @@ const getOverlapLayout = (tasks: Task[]) => {
     const layout = new Map<string, { width: number; left: number; total: number }>();
     if (!sortedTasks.length) return layout;
 
-    const overlapGroups: Task[][] = [];
-    
-    // This logic needs to be refined for better visual grouping
-    // For now, we'll just group tasks that start at the same time or overlap.
     const columns: Task[][] = [];
     for (const task of sortedTasks) {
         let placed = false;
@@ -94,11 +90,9 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
         e.preventDefault();
         // Prevent dialog from opening when starting a drag
         if (e.detail > 0 && !isDragging) {
-             if (tasksInCell.length > 0) {
-                setSelectedCellTasks(tasksInCell);
-                setSelectedCellInfo({day, hour});
-                setActionDialogOpen(true);
-            }
+            setSelectedCellTasks(tasksInCell);
+            setSelectedCellInfo({day, hour});
+            setActionDialogOpen(true);
         }
     };
     
@@ -129,12 +123,19 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
     };
 
     const handleMouseDown = (day: DaysOfWeek, hour: string) => {
-      setTimeout(() => {
+      // Small delay to distinguish click from drag
+      const dragTimeout = setTimeout(() => {
           setIsDragging(true);
           const cell = { day, hour };
           setStartCell(cell);
           setEndCell(cell);
-      }, 150); // Small delay to distinguish click from drag
+      }, 150); 
+      
+      const handleMouseUpOnce = () => {
+        clearTimeout(dragTimeout);
+        document.removeEventListener('mouseup', handleMouseUpOnce);
+      }
+      document.addEventListener('mouseup', handleMouseUpOnce);
     };
 
     const handleMouseEnter = (day: DaysOfWeek, hour: string) => {
@@ -206,10 +207,6 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
         const handleDocMouseUp = () => {
              if (isDragging) {
                 handleMouseUp();
-             } else {
-                setStartCell(null);
-                setEndCell(null);
-                setIsDragging(false);
              }
         };
         document.addEventListener('mouseup', handleDocMouseUp);
@@ -246,7 +243,7 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
     return (
         <div ref={ref} className="bg-background p-1 select-none w-full overflow-x-auto">
         <Card className="border shadow-sm">
-            <Table onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} className="border-collapse w-full table-fixed">
+            <Table onMouseLeave={handleMouseUp} className="border-collapse w-full table-fixed">
             <TableHeader>
                 <TableRow className="hover:bg-card">
                     <TableHead className="w-24 md:w-28 border-r p-2 text-center sticky left-0 bg-card z-20 text-xs md:text-sm">
@@ -388,3 +385,5 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
 ScheduleDisplay.displayName = 'ScheduleDisplay';
 
 export default ScheduleDisplay;
+
+    
