@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -207,27 +208,7 @@ export default function SchedulePage({ params }: { params: { id: string } }) {
     });
   };
 
-  const isTimeSlotTaken = (day: DaysOfWeek, startTime: string, endTime: string, excludeTaskId?: string): boolean => {
-    if (!scheduleData) return false;
-    return scheduleData.tasks.some(task => {
-      if (task.id === excludeTaskId || task.day !== day) {
-        return false;
-      }
-      const taskStart = task.startTime;
-      const taskEnd = task.endTime;
-      return (startTime < taskEnd && endTime > taskStart);
-    });
-  };
-
   const handleAddTask = (task: Omit<Task, 'id'>) => {
-    if (isTimeSlotTaken(task.day, task.startTime, task.endTime)) {
-      toast({
-        title: "Time slot conflict",
-        description: "This time slot is already taken by another task.",
-        variant: "destructive"
-      });
-      return;
-    }
     const newTask: Task = { ...task, id: Date.now().toString() };
     updateScheduleData(prev => ({...prev, tasks: [...prev.tasks, newTask]}));
     toast({
@@ -241,14 +222,6 @@ export default function SchedulePage({ params }: { params: { id: string } }) {
   };
   
   const handleUpdateTask = (updatedTask: Task) => {
-      if (isTimeSlotTaken(updatedTask.day, updatedTask.startTime, updatedTask.endTime, updatedTask.id)) {
-        toast({
-            title: "Time slot conflict",
-            description: "This time slot is already taken by another task.",
-            variant: "destructive"
-        });
-        return;
-      }
       updateScheduleData(prev => ({...prev, tasks: prev.tasks.map(task => task.id === updatedTask.id ? updatedTask : task) }));
   };
   
