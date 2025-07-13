@@ -117,6 +117,11 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
       setCreateDialogOpen(true);
     };
 
+    const handleDeleteFromDialog = (taskId: string) => {
+        onDeleteTask(taskId);
+        setSelectedCellTasks(prev => prev.filter(t => t.id !== taskId));
+    };
+
     const handleMouseDown = (day: DaysOfWeek, hour: string) => {
       const dragTimeout = setTimeout(() => {
           setIsDragging(true);
@@ -309,7 +314,7 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
             onClose={() => setActionDialogOpen(false)}
             tasks={selectedCellTasks}
             onEdit={handleEditClick}
-            onDelete={onDeleteTask}
+            onDelete={handleDeleteFromDialog}
             onCreateNew={handleCreateNewClick}
         />
         {taskToEdit && (
