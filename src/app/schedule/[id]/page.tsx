@@ -9,6 +9,7 @@ import ScheduleDisplay from '@/components/schedule-display';
 import Header from '@/components/header';
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/context/i18n-context';
 
 const initialHours = Array.from({ length: 15 }, (_, i) => `${(i + 6).toString().padStart(2, '0')}:00`); // 06:00 to 20:00
 const initialDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
@@ -37,6 +38,7 @@ interface ScheduleData {
 export default function SchedulePage({ params }: { params: { id: string } }) {
   const { id: scheduleId } = use(params);
   const router = useRouter();
+  const { t } = useI18n();
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   
@@ -60,22 +62,22 @@ export default function SchedulePage({ params }: { params: { id: string } }) {
       } catch (e) {
         console.error("Failed to parse saved schedule", e);
         toast({
-          title: "Error",
-          description: "Could not load your schedule. It might be corrupted.",
+          title: t('error'),
+          description: t('errorLoadingSchedule'),
           variant: "destructive",
         });
         router.push('/');
       }
     } else {
         toast({
-          title: "Not Found",
-          description: "This schedule could not be found.",
+          title: t('notFound'),
+          description: t('scheduleNotFound'),
           variant: "destructive",
         });
         router.push('/');
     }
     setIsLoaded(true);
-  }, [scheduleId, toast, router]);
+  }, [scheduleId, toast, router, t]);
 
   const updateScheduleData = (updater: (prev: ScheduleData) => ScheduleData) => {
     setScheduleData(prevData => {
@@ -122,14 +124,14 @@ export default function SchedulePage({ params }: { params: { id: string } }) {
         localStorage.setItem('scheduleSnap-schedules', JSON.stringify(allSchedules));
 
         toast({
-            title: "Success!",
-            description: "Your schedule has been saved.",
+            title: t('success'),
+            description: t('scheduleSavedSuccess'),
         });
     } catch (error) {
         console.error("Failed to save schedule", error);
         toast({
-            title: "Error saving schedule",
-            description: "Could not save your schedule.",
+            title: t('errorSavingSchedule'),
+            description: t('couldNotSaveSchedule'),
             variant: "destructive",
         })
     }
@@ -138,8 +140,8 @@ export default function SchedulePage({ params }: { params: { id: string } }) {
   const handleExport = () => {
     if (scheduleRef.current) {
       toast({
-        title: "Exporting...",
-        description: "Your schedule is being converted to an image.",
+        title: t('exporting'),
+        description: t('exportingDescription'),
       });
       
       const backgroundColorValue = getComputedStyle(document.documentElement).getPropertyValue('--background').trim();
@@ -163,8 +165,8 @@ export default function SchedulePage({ params }: { params: { id: string } }) {
         link.click();
       }).catch(err => {
         toast({
-            title: "Export failed",
-            description: "Something went wrong during the image export.",
+            title: t('exportFailed'),
+            description: t('exportFailedDescription'),
             variant: "destructive"
         })
         console.error("Export error:", err);
@@ -179,8 +181,8 @@ export default function SchedulePage({ params }: { params: { id: string } }) {
   const addHour = (newHour: string) => {
     if (scheduleData?.hours.includes(newHour) || !/^\d{1,2}:\d{2}$/.test(newHour)) {
         toast({
-            title: "Invalid Hour",
-            description: "Please enter a valid hour (e.g., 14:30) that doesn't already exist.",
+            title: t('invalidHour'),
+            description: t('invalidHourDescription'),
             variant: "destructive",
         });
         return;
@@ -190,7 +192,7 @@ export default function SchedulePage({ params }: { params: { id: string } }) {
 
   const removeHour = (hourToRemove: string) => {
     if (scheduleData && scheduleData.hours.length <= 1) {
-        toast({ title: "Cannot remove last hour", variant: "destructive" });
+        toast({ title: t('cannotRemoveLastHour'), variant: "destructive" });
         return;
     }
     updateScheduleData(prev => ({ ...prev, hours: prev.hours.filter(h => h !== hourToRemove)}));
@@ -212,8 +214,8 @@ export default function SchedulePage({ params }: { params: { id: string } }) {
     const newTask: Task = { ...task, id: Date.now().toString() };
     updateScheduleData(prev => ({...prev, tasks: [...prev.tasks, newTask]}));
     toast({
-        title: "Task created!",
-        description: `Task "${task.name}" has been added to the schedule.`,
+        title: t('taskCreated'),
+        description: t('taskCreatedSuccess', { taskName: task.name }),
     })
   };
   
@@ -224,8 +226,8 @@ export default function SchedulePage({ params }: { params: { id: string } }) {
   const handleUpdateTask = (updatedTask: Task) => {
       updateScheduleData(prev => ({...prev, tasks: prev.tasks.map(task => task.id === updatedTask.id ? updatedTask : task) }));
       toast({
-        title: "Task updated!",
-        description: `Task "${updatedTask.name}" has been saved.`,
+        title: t('taskUpdated'),
+        description: t('taskUpdatedSuccess', { taskName: updatedTask.name }),
     })
   };
   
@@ -236,7 +238,7 @@ export default function SchedulePage({ params }: { params: { id: string } }) {
   if (!isLoaded || !scheduleData) {
       return (
         <div className="flex items-center justify-center min-h-screen">
-          <div className="text-xl">Loading Schedule...</div>
+          <div className="text-xl">{t('loadingSchedule')}...</div>
         </div>
       );
   }

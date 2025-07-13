@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { DaysOfWeek, Task } from '@/app/schedule/[id]/page';
 import { useEffect } from "react";
+import { useI18n } from "@/context/i18n-context";
 
 interface EditTaskDialogProps {
   isOpen: boolean;
@@ -49,6 +50,7 @@ export function EditTaskDialog({
   hours,
   visibleDays,
 }: EditTaskDialogProps) {
+  const { t } = useI18n();
   
   const getDurationInHours = (start: string, end: string) => {
     return (timeToMinutes(end) - timeToMinutes(start)) / 60;
@@ -105,9 +107,9 @@ export function EditTaskDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Task</DialogTitle>
+          <DialogTitle>{t('editTask')}</DialogTitle>
           <DialogDescription>
-            Update the details for your task.
+            {t('editTaskDescription')}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -117,9 +119,9 @@ export function EditTaskDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Task Name</FormLabel>
+                  <FormLabel>{t('taskName')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Team Meeting" {...field} />
+                    <Input placeholder={t('taskNamePlaceholder')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -131,15 +133,15 @@ export function EditTaskDialog({
                   name="day"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Day</FormLabel>
+                      <FormLabel>{t('day')}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a day" />
+                            <SelectValue placeholder={t('selectDayPlaceholder')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {visibleDays.map(day => <SelectItem key={day} value={day}>{day}</SelectItem>)}
+                          {visibleDays.map(day => <SelectItem key={day} value={day}>{t(`days.${day.toLowerCase()}`)}</SelectItem>)}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -151,11 +153,11 @@ export function EditTaskDialog({
                   name="startTime"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Start Time</FormLabel>
+                      <FormLabel>{t('startTime')}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                          <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a time" />
+                            <SelectValue placeholder={t('selectTimePlaceholder')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -172,7 +174,7 @@ export function EditTaskDialog({
                 name="duration"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Duration (hours)</FormLabel>
+                        <FormLabel>{t('durationHours')}</FormLabel>
                         <FormControl>
                             <Input type="number" min="0.25" step="0.25" {...field} />
                         </FormControl>
@@ -185,7 +187,7 @@ export function EditTaskDialog({
               name="color"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Color</FormLabel>
+                  <FormLabel>{t('color')}</FormLabel>
                   <FormControl>
                     <div className="flex items-center gap-2">
                       <Input type="color" {...field} className="p-1 h-10 w-14" />
@@ -198,9 +200,9 @@ export function EditTaskDialog({
             />
             <DialogFooter>
                 <Button variant="outline" onClick={onClose}>
-                    Cancel
+                    {t('cancel')}
                 </Button>
-                <Button type="submit">Save Changes</Button>
+                <Button type="submit">{t('saveChanges')}</Button>
             </DialogFooter>
           </form>
         </Form>

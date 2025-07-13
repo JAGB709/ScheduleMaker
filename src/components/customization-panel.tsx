@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from "react";
+import { useI18n } from "@/context/i18n-context";
 
 function hexToHsl(hex: string): string | null {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -31,6 +32,7 @@ function hexToHsl(hex: string): string | null {
 }
 
 export default function CustomizationPanel() {
+  const { t } = useI18n();
   const [primaryColor, setPrimaryColor] = useState("#64B5F6");
   const [backgroundColor, setBackgroundColor] = useState("#F5F5F5");
   const [accentColor, setAccentColor] = useState("#FFEB3B");
@@ -56,24 +58,24 @@ export default function CustomizationPanel() {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">Change the look and feel of your schedule. These changes are temporary and may not affect all elements.</p>
+      <p className="text-xs text-muted-foreground">{t('customizeDescription')}</p>
       <div className="space-y-3">
         <div className="space-y-1">
-            <label htmlFor="primaryColor" className="text-sm font-medium">Primary</label>
+            <label htmlFor="primaryColor" className="text-sm font-medium">{t('primary')}</label>
             <div className="flex items-center gap-2">
                 <input id="primaryColor" type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="w-8 h-8 p-0 bg-transparent border-none cursor-pointer" />
                 <span className="text-sm text-muted-foreground">{primaryColor.toUpperCase()}</span>
             </div>
         </div>
         <div className="space-y-1">
-            <label htmlFor="backgroundColor" className="text-sm font-medium">Background</label>
+            <label htmlFor="backgroundColor" className="text-sm font-medium">{t('background')}</label>
             <div className="flex items-center gap-2">
                 <input id="backgroundColor" type="color" value={backgroundColor} onChange={(e) => setBackgroundColor(e.target.value)} className="w-8 h-8 p-0 bg-transparent border-none cursor-pointer" />
                 <span className="text-sm text-muted-foreground">{backgroundColor.toUpperCase()}</span>
             </div>
         </div>
         <div className="space-y-1">
-            <label htmlFor="accentColor" className="text-sm font-medium">Accent</label>
+            <label htmlFor="accentColor" className="text-sm font-medium">{t('accent')}</label>
             <div className="flex items-center gap-2">
                 <input id="accentColor" type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="w-8 h-8 p-0 bg-transparent border-none cursor-pointer" />
                 <span className="text-sm text-muted-foreground">{accentColor.toUpperCase()}</span>

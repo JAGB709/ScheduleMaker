@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Task } from "@/app/schedule/[id]/page";
 import { Trash2, Edit, PlusCircle } from "lucide-react";
+import { useI18n } from "@/context/i18n-context";
 
 interface CellActionDialogProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export function CellActionDialog({
   onDelete,
   onCreateNew,
 }: CellActionDialogProps) {
+  const { t } = useI18n();
 
   const handleCreateClick = () => {
     onClose();
@@ -38,13 +40,13 @@ export function CellActionDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Actions</DialogTitle>
+          <DialogTitle>{t('actions')}</DialogTitle>
           <DialogDescription>
-            Choose an action for this time slot.
+            {t('chooseActionDescription')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 my-4">
-            <h3 className="text-sm font-medium text-muted-foreground">Existing Tasks</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">{t('existingTasks')}</h3>
             {tasks.length > 0 ? (
                 <ul className="space-y-2">
                     {tasks.map(task => (
@@ -62,16 +64,16 @@ export function CellActionDialog({
                     ))}
                 </ul>
             ) : (
-                <p className="text-sm text-center text-muted-foreground py-4">No tasks in this specific slot.</p>
+                <p className="text-sm text-center text-muted-foreground py-4">{t('noTasksInSlot')}</p>
             )}
         </div>
         <DialogFooter className="sm:justify-between flex-row-reverse w-full">
             <Button onClick={handleCreateClick}>
                 <PlusCircle className="mr-2 h-4 w-4" />
-                Create New Task
+                {t('createNewTask')}
             </Button>
            <Button variant="outline" onClick={onClose}>
-                Cancel
+                {t('cancel')}
             </Button>
         </DialogFooter>
       </DialogContent>

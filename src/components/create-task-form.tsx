@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import type { DaysOfWeek, Task } from '@/app/page';
+import type { DaysOfWeek, Task } from '@/app/schedule/[id]/page';
+import { useI18n } from '@/context/i18n-context';
 
 interface CreateTaskFormProps {
   hours: string[];
@@ -26,6 +27,8 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export default function CreateTaskForm({ hours, visibleDays, onAddTask }: CreateTaskFormProps) {
+  const { t } = useI18n();
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -71,9 +74,9 @@ export default function CreateTaskForm({ hours, visibleDays, onAddTask }: Create
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Task Name</FormLabel>
+              <FormLabel>{t('taskName')}</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Team Meeting" {...field} />
+                <Input placeholder={t('taskNamePlaceholder')} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -85,15 +88,15 @@ export default function CreateTaskForm({ hours, visibleDays, onAddTask }: Create
               name="day"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Day</FormLabel>
+                  <FormLabel>{t('day')}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a day" />
+                        <SelectValue placeholder={t('selectDayPlaceholder')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {visibleDays.map(day => <SelectItem key={day} value={day}>{day}</SelectItem>)}
+                      {visibleDays.map(day => <SelectItem key={day} value={day}>{t(`days.${day.toLowerCase()}`)}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -105,11 +108,11 @@ export default function CreateTaskForm({ hours, visibleDays, onAddTask }: Create
               name="startTime"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Start Time</FormLabel>
+                  <FormLabel>{t('startTime')}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                      <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a time" />
+                        <SelectValue placeholder={t('selectTimePlaceholder')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -126,7 +129,7 @@ export default function CreateTaskForm({ hours, visibleDays, onAddTask }: Create
             name="duration"
             render={({ field }) => (
                 <FormItem>
-                    <FormLabel>Duration (hours)</FormLabel>
+                    <FormLabel>{t('durationHours')}</FormLabel>
                     <FormControl>
                         <Input type="number" min="0.5" step="0.5" {...field} />
                     </FormControl>
@@ -139,7 +142,7 @@ export default function CreateTaskForm({ hours, visibleDays, onAddTask }: Create
           name="color"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Color</FormLabel>
+              <FormLabel>{t('color')}</FormLabel>
               <FormControl>
                 <div className="flex items-center gap-2">
                   <Input type="color" {...field} className="p-1 h-10 w-14" />
@@ -150,7 +153,7 @@ export default function CreateTaskForm({ hours, visibleDays, onAddTask }: Create
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full">Add Task</Button>
+        <Button type="submit" className="w-full">{t('addTask')}</Button>
       </form>
     </Form>
   );

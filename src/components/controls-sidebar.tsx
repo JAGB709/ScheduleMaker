@@ -4,7 +4,7 @@ import { Palette, CalendarDays, Trash2, PlusCircle, PenSquare, Rows, Columns } f
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import CreateTaskForm from '@/components/create-task-form';
 import { SidebarHeader, SidebarContent } from '@/components/ui/sidebar';
-import type { DaysOfWeek, Task, ScheduleLayout } from '@/app/page';
+import type { DaysOfWeek, Task, ScheduleLayout } from '@/app/schedule/[id]/page';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
@@ -12,6 +12,7 @@ import { Input } from './ui/input';
 import { Switch } from './ui/switch';
 import { useState } from 'react';
 import CustomizationPanel from './customization-panel';
+import { useI18n } from '@/context/i18n-context';
 
 interface ControlsSidebarProps {
   visibleDays: DaysOfWeek[];
@@ -30,6 +31,7 @@ export default function ControlsSidebar({
   visibleDays, onToggleDay, hours, onAddHour, onRemoveHour, onAddTask, layout, onLayoutChange 
 }: ControlsSidebarProps) {
   const [newHour, setNewHour] = useState('');
+  const { t } = useI18n();
 
   const handleAddHour = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +42,7 @@ export default function ControlsSidebar({
   return (
     <>
       <SidebarHeader>
-        <h2 className="text-lg font-semibold pl-2">Dashboard</h2>
+        <h2 className="text-lg font-semibold pl-2">{t('dashboard')}</h2>
       </SidebarHeader>
       <SidebarContent className="p-0">
         <Accordion type="multiple" defaultValue={['create-task', 'view-options']} className="w-full">
@@ -48,7 +50,7 @@ export default function ControlsSidebar({
             <AccordionTrigger className="px-4 text-base hover:no-underline rounded-md hover:bg-sidebar-accent">
               <div className="flex items-center gap-2">
                 <PenSquare className="h-5 w-5 text-primary" />
-                <span>Create Task</span>
+                <span>{t('createTask')}</span>
               </div>
             </AccordionTrigger>
             <AccordionContent className="p-4 pt-0">
@@ -59,13 +61,13 @@ export default function ControlsSidebar({
             <AccordionTrigger className="px-4 text-base hover:no-underline rounded-md hover:bg-sidebar-accent">
               <div className="flex items-center gap-2">
                 <CalendarDays className="h-5 w-5 text-primary" />
-                <span>View Options</span>
+                <span>{t('viewOptions')}</span>
               </div>
             </AccordionTrigger>
             <AccordionContent className="p-4 pt-0 space-y-6">
               <div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="layout-switch" className="font-semibold">Swap Axes</Label>
+                    <Label htmlFor="layout-switch" className="font-semibold">{t('swapAxes')}</Label>
                     <div className="flex items-center gap-2">
                         <Rows className="h-4 w-4 text-muted-foreground"/>
                         <Switch 
@@ -78,7 +80,7 @@ export default function ControlsSidebar({
                   </div>
               </div>
               <div>
-                <h4 className="font-semibold mb-2">Visible Days</h4>
+                <h4 className="font-semibold mb-2">{t('visibleDays')}</h4>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                   {allDays.map(day => (
                     <div key={day} className="flex items-center space-x-2">
@@ -87,13 +89,13 @@ export default function ControlsSidebar({
                         checked={visibleDays.includes(day)}
                         onCheckedChange={() => onToggleDay(day)}
                       />
-                      <Label htmlFor={`day-${day}`} className="text-sm font-normal cursor-pointer">{day}</Label>
+                      <Label htmlFor={`day-${day}`} className="text-sm font-normal cursor-pointer">{t(`days.${day.toLowerCase()}`)}</Label>
                     </div>
                   ))}
                 </div>
               </div>
               <div>
-                <h4 className="font-semibold mb-2">Manage Hours</h4>
+                <h4 className="font-semibold mb-2">{t('manageHours')}</h4>
                  <form onSubmit={handleAddHour} className="flex items-center gap-2 mb-2">
                     <Input 
                       type="time"
@@ -122,7 +124,7 @@ export default function ControlsSidebar({
             <AccordionTrigger className="px-4 text-base hover:no-underline rounded-md hover:bg-sidebar-accent">
               <div className="flex items-center gap-2">
                 <Palette className="h-5 w-5 text-primary" />
-                <span>Customize</span>
+                <span>{t('customize')}</span>
               </div>
             </AccordionTrigger>
             <AccordionContent className="p-4 pt-0">

@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { useI18n } from "@/context/i18n-context";
 
 interface NewScheduleDialogProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export function NewScheduleDialog({
   onClose,
   onCreate,
 }: NewScheduleDialogProps) {
+  const { t } = useI18n();
   const [scheduleName, setScheduleName] = useState("");
 
   const handleCreate = () => {
@@ -43,22 +45,22 @@ export function NewScheduleDialog({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create New Schedule</DialogTitle>
+          <DialogTitle>{t('createNewSchedule')}</DialogTitle>
           <DialogDescription>
-            Enter a name for your new schedule.
+            {t('newScheduleDescription')}
           </DialogDescription>
         </DialogHeader>
         <Input
           value={scheduleName}
           onChange={(e) => setScheduleName(e.target.value)}
-          placeholder="e.g., My Work Week"
+          placeholder={t('newSchedulePlaceholder')}
           onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
         />
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t('cancel')}
           </Button>
-          <Button onClick={handleCreate}>Create</Button>
+          <Button onClick={handleCreate}>{t('create')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

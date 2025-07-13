@@ -19,6 +19,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { NewScheduleDialog } from "@/components/new-schedule-dialog";
+import { useI18n } from '@/context/i18n-context';
+import LanguageSwitcher from '@/components/language-switcher';
 
 export interface Schedule {
   id: string;
@@ -28,6 +30,7 @@ export interface Schedule {
 }
 
 export default function HomePage() {
+  const { t } = useI18n();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [isCreateDialogOpen, setCreateDialogOpen] = useState(false);
   const router = useRouter();
@@ -37,7 +40,6 @@ export default function HomePage() {
     if (savedSchedules) {
       try {
         const parsedSchedules = JSON.parse(savedSchedules);
-        // Sort by creation date, newest first
         parsedSchedules.sort((a: Schedule, b: Schedule) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setSchedules(parsedSchedules);
       } catch (error) {
@@ -51,7 +53,6 @@ export default function HomePage() {
     if (newScheduleName && newScheduleName.trim() !== '') {
       const newScheduleId = `schedule_${Date.now()}`;
       
-      // Data for the detailed schedule page
       const newScheduleData = {
         id: newScheduleId,
         name: newScheduleName,
@@ -62,7 +63,6 @@ export default function HomePage() {
       };
       localStorage.setItem(`scheduleSnap-data-${newScheduleId}`, JSON.stringify(newScheduleData));
       
-      // Meta-data for the home page card
       const newMetaSchedule: Schedule = {
           id: newScheduleId,
           name: newScheduleName,
@@ -73,10 +73,8 @@ export default function HomePage() {
       const updatedSchedules = [newMetaSchedule, ...schedules];
       localStorage.setItem('scheduleSnap-schedules', JSON.stringify(updatedSchedules));
       
-      // Update state to re-render UI
       setSchedules(updatedSchedules); 
       
-      // Redirect to the new schedule's page
       router.push(`/schedule/${newScheduleId}`);
     }
   };
@@ -91,24 +89,25 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-6">
-        <h1 className="text-xl font-bold tracking-tight">My Schedules</h1>
-        {schedules.length > 0 && (
-          <div className="ml-auto">
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <PlusCircle className="mr-2" />
-              Create New Schedule
-            </Button>
-          </div>
-        )}
+        <h1 className="text-xl font-bold tracking-tight">{t('mySchedules')}</h1>
+        <div className="ml-auto flex items-center gap-2">
+            {schedules.length > 0 && (
+                <Button onClick={() => setCreateDialogOpen(true)}>
+                    <PlusCircle className="mr-2" />
+                    {t('createNewSchedule')}
+                </Button>
+            )}
+            <LanguageSwitcher />
+        </div>
       </header>
       <main className="flex-1 p-4 md:p-6 lg:p-8">
         {schedules.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center border-2 border-dashed border-muted rounded-lg p-12" style={{height: 'calc(100vh - 12rem)'}}>
-            <h2 className="text-2xl font-semibold mb-2">No schedules found</h2>
-            <p className="text-muted-foreground mb-4">Click the button below to create your first schedule.</p>
+            <h2 className="text-2xl font-semibold mb-2">{t('noSchedulesFound')}</h2>
+            <p className="text-muted-foreground mb-4">{t('noSchedulesDescription')}</p>
              <Button onClick={() => setCreateDialogOpen(true)} size="lg">
               <PlusCircle className="mr-2" />
-              Create New Schedule
+              {t('createNewSchedule')}
             </Button>
             <Image src="https://placehold.co/400x300.png" alt="Empty state illustration" width={400} height={300} data-ai-hint="empty calendar" className="max-w-xs opacity-50 mt-8"/>
           </div>
@@ -126,7 +125,7 @@ export default function HomePage() {
                         <Image src={schedule.preview} alt={`${schedule.name} preview`} width={400} height={225} className="h-full w-full object-cover" />
                       ) : (
                          <div className="flex items-center justify-center h-full text-muted-foreground bg-secondary">
-                             <p>No preview available</p>
+                             <p>{t('noPreviewAvailable')}</p>
                          </div>
                       )}
                     </div>
@@ -141,16 +140,15 @@ export default function HomePage() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogTitle>{t('areYouSure')}</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete your schedule
-                            "{schedule.name}".
+                            {t('deleteScheduleConfirmation', { scheduleName: schedule.name })}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
                           <AlertDialogAction onClick={() => handleDeleteSchedule(schedule.id)}>
-                            Delete
+                            {t('delete')}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>

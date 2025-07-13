@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { CellActionDialog } from './cell-action-dialog';
 import { EditTaskDialog } from './edit-task-dialog';
 import { CreateTaskDialog } from './create-task-dialog';
+import { useI18n } from '@/context/i18n-context';
 
 interface ScheduleDisplayProps {
   tasks: Task[];
@@ -84,6 +85,8 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
     const [selectedCellTasks, setSelectedCellTasks] = useState<Task[]>([]);
     const [selectedCellInfo, setSelectedCellInfo] = useState<Cell | null>(null);
     const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+
+    const { t } = useI18n();
 
     const sortedHours = useMemo(() => [...hours].sort((a,b) => timeToMinutes(a) - timeToMinutes(b)), [hours]);
     const dayOrder: DaysOfWeek[] = useMemo(() => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], []);
@@ -207,11 +210,11 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
             <TableHeader>
                 <TableRow className="hover:bg-card">
                     <TableHead className="w-24 md:w-28 border-r p-2 text-center sticky left-0 bg-card z-20 text-xs md:text-sm">
-                        {layout === 'vertical' ? 'Time' : 'Day'}
+                        {layout === 'vertical' ? t('time') : t('day')}
                     </TableHead>
                     {headers.map((header) => (
                         <TableHead key={header} className="border-r p-2 text-center font-semibold text-xs md:text-sm">
-                            {header}
+                            {t(`days.${(header as string).toLowerCase()}`, { defaultValue: header })}
                         </TableHead>
                     ))}
                 </TableRow>
@@ -219,7 +222,7 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
             <TableBody>
                 {rows.map((rowItem) => (
                 <TableRow key={rowItem} className="hover:bg-card">
-                    <TableCell className="font-semibold border-r p-2 text-center sticky left-0 bg-card z-20 text-xs md:text-sm">{rowItem}</TableCell>
+                    <TableCell className="font-semibold border-r p-2 text-center sticky left-0 bg-card z-20 text-xs md:text-sm">{t(`days.${(rowItem as string).toLowerCase()}`, { defaultValue: rowItem })}</TableCell>
                     {headers.map((colItem) => {
                         const day = layout === 'vertical' ? colItem as DaysOfWeek : rowItem as DaysOfWeek;
                         const hour = layout === 'vertical' ? rowItem : colItem;
@@ -255,7 +258,6 @@ const ScheduleDisplay = forwardRef<HTMLDivElement, ScheduleDisplayProps>(
                                     const durationMinutes = endMinutes - startMinutes;
                                     const topOffset = (startMinutes % 60);
                                     
-                                    const cellHeightRem = 4; // h-16 = 4rem, md:h-20 = 5rem
                                     const oneMinuteInRem = (window.innerWidth < 768 ? 4 : 5) / 60;
                                     
                                     let sizeStyle: React.CSSProperties = {};
