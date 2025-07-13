@@ -68,6 +68,7 @@ export default function HomePage() {
       };
       
       const updatedSchedules = [newMetaSchedule, ...schedules];
+      setSchedules(updatedSchedules); // Update state to re-render
       localStorage.setItem('scheduleSnap-schedules', JSON.stringify(updatedSchedules));
       
       router.push(`/schedule/${newScheduleId}`);
