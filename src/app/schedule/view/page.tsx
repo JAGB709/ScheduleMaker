@@ -1,17 +1,17 @@
-
 'use client';
 
-import { useState, useRef, useEffect, use } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import html2canvas from 'html2canvas';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import ControlsSidebar from '@/components/controls-sidebar';
 import ScheduleDisplay from '@/components/schedule-display';
 import Header from '@/components/header';
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast";
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/context/i18n-context';
 
-const initialHours = Array.from({ length: 15 }, (_, i) => `${(i + 6).toString().padStart(2, '0')}:00`); // 06:00 to 20:00
+const initialHours = Array.from({ length: 15 }, (_, i) => `${(i + 6).toString().padStart(2, '0')}:00`);
 const initialDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
 export type DaysOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
@@ -21,9 +21,9 @@ export interface Task {
   id: string;
   name: string;
   day: DaysOfWeek;
-  startTime: string; // "HH:mm"
-  endTime: string;   // "HH:mm"
-  color: string; // Hex color string e.g., "#RRGGBB"
+  startTime: string;
+  endTime: string;
+  color: string;
 }
 
 interface ScheduleData {
@@ -35,10 +35,12 @@ interface ScheduleData {
   layout: ScheduleLayout;
 }
 
-export default function SchedulePage({ params }: { params: { id: string } }) {
-  const { id: scheduleId } = use(params);
+function ScheduleView() {
   const router = useRouter();
   const { t } = useI18n();
+  const searchParams = useSearchParams();
+  const scheduleId = searchParams.get('id');
+
   const [scheduleData, setScheduleData] = useState<ScheduleData | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   
@@ -46,7 +48,11 @@ export default function SchedulePage({ params }: { params: { id: string } }) {
   const { toast } = useToast();
   
   useEffect(() => {
-    if (!scheduleId) return;
+    if (!scheduleId) {
+        router.push('/');
+        return;
+    };
+
     const savedDataString = localStorage.getItem(`scheduleSnap-data-${scheduleId}`);
     if (savedDataString) {
       try {
@@ -99,10 +105,9 @@ export default function SchedulePage({ params }: { params: { id: string } }) {
   };
 
   const handleSaveSchedule = async () => {
-    if (!scheduleData) return;
+    if (!scheduleData || !scheduleId) return;
     try {
         const preview = await generatePreview();
-
         localStorage.setItem(`scheduleSnap-data-${scheduleId}`, JSON.stringify(scheduleData));
         
         const allSchedulesString = localStorage.getItem('scheduleSnap-schedules');
@@ -283,5 +288,13 @@ export default function SchedulePage({ params }: { params: { id: string } }) {
         </div>
       </div>
     </SidebarProvider>
+  );
+}
+
+export default function SchedulePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ScheduleView />
+    </Suspense>
   );
 }

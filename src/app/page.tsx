@@ -75,7 +75,7 @@ export default function HomePage() {
       
       setSchedules(updatedSchedules); 
       
-      router.push(`/schedule/${newScheduleId}`);
+      router.push(`/schedule/view?id=${newScheduleId}`);
     }
   };
   
@@ -115,7 +115,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {schedules.map((schedule) => (
               <Card key={schedule.id} className="group relative flex flex-col overflow-hidden transition-shadow hover:shadow-lg">
-                <Link href={`/schedule/${schedule.id}`} className="flex-grow">
+                <Link href={`/schedule/view?id=${schedule.id}`} className="flex-grow">
                   <CardHeader className="p-4">
                     <CardTitle className="truncate">{schedule.name}</CardTitle>
                   </CardHeader>
