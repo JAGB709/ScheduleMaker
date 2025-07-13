@@ -1,20 +1,32 @@
 'use client';
 
-import { CalendarDays, Save, Share2 } from 'lucide-react';
+import { ArrowLeft, Save, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useRouter } from 'next/navigation';
 
 interface HeaderProps {
+  scheduleName: string;
+  onNameChange: (name: string) => void;
   onSave: () => void;
   onExport: () => void;
 }
 
-export default function Header({ onSave, onExport }: HeaderProps) {
+export default function Header({ scheduleName, onNameChange, onSave, onExport }: HeaderProps) {
+  const router = useRouter();
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:px-6">
-      <div className="flex items-center gap-2">
-        <CalendarDays className="h-6 w-6 text-primary" />
-        <h1 className="text-xl font-bold tracking-tight">ScheduleSnap</h1>
-      </div>
+      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => router.push('/')}>
+        <ArrowLeft className="h-5 w-5" />
+        <span className="sr-only">Back to schedules</span>
+      </Button>
+      <Input
+        type="text"
+        value={scheduleName}
+        onChange={(e) => onNameChange(e.target.value)}
+        className="h-9 max-w-xs text-xl font-bold tracking-tight border-none shadow-none focus-visible:ring-0 p-0"
+      />
       <div className="ml-auto flex items-center gap-2">
         <Button variant="outline" size="sm" onClick={onSave}>
           <Save className="mr-2 h-4 w-4" />
