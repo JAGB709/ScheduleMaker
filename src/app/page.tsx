@@ -8,46 +8,42 @@ import ScheduleDisplay from '@/components/schedule-display';
 import Header from '@/components/header';
 import { useToast } from "@/hooks/use-toast"
 
-const defaultSchedule = {
-  "Monday": [
-    { "time": "9:00 AM", "activity": "Morning Stand-up & Coffee" }, 
-    { "time": "10:00 AM", "activity": "Deep Work Block: Project A" }, 
-    { "time": "1:00 PM", "activity": "Lunch Break" }, 
-    { "time": "2:00 PM", "activity": "Design Review" }
-  ],
-  "Tuesday": [
-    { "time": "10:00 AM", "activity": "Client Meeting" },
-    { "time": "11:00 AM", "activity": "Follow-up & Emails" }
-  ],
-  "Wednesday": [
-    { "time": "9:00 AM", "activity": "Team Brainstorming" },
-    { "time": "11:00 AM", "activity": "Development Block: Project B" }, 
-    { "time": "3:00 PM", "activity": "Team Sync" }
-  ],
-  "Thursday": [
-    { "time": "10:00 AM", "activity": "Research & Development" },
-    { "time": "2:00 PM", "activity": "User Testing Session" }
-  ],
-  "Friday": [
-    { "time": "9:00 AM", "activity": "Focus Work" },
-    { "time": "4:00 PM", "activity": "Weekly Retrospective & Planning" }
-  ],
-  "Saturday": [{ "time": "Morning", "activity": "Personal Project / Learning" }],
-  "Sunday": [{ "time": "Afternoon", "activity": "Relax & Recharge" }],
+const initialHours = Array.from({ length: 15 }, (_, i) => `${i + 6}:00`); // 6:00 to 20:00
+
+const initialDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+const initialSchedule = () => {
+  const schedule: { [key: string]: { [key: string]: string } } = {};
+  initialDays.forEach(day => {
+    schedule[day] = {};
+    initialHours.forEach(hour => {
+      schedule[day][hour] = '';
+    });
+  });
+  return schedule;
 };
 
-export type ScheduleData = typeof defaultSchedule;
+
+export type ScheduleData = { [key: string]: { [key: string]: string } };
+export type DaysOfWeek = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
 
 export default function Home() {
-  const [schedule, setSchedule] = useState<ScheduleData>(defaultSchedule);
+  const [schedule, setSchedule] = useState<ScheduleData>(initialSchedule());
+  const [hours, setHours] = useState<string[]>(initialHours);
+  const [visibleDays, setVisibleDays] = useState<DaysOfWeek[]>(initialDays as DaysOfWeek[]);
   const scheduleRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
   useEffect(() => {
-    const savedSchedule = localStorage.getItem('scheduleSnap-schedule');
-    if (savedSchedule) {
+    const savedData = localStorage.getItem('scheduleSnap-data');
+    if (savedData) {
       try {
-        setSchedule(JSON.parse(savedSchedule));
+        const { schedule, hours, visibleDays } = JSON.parse(savedData);
+        if (schedule && hours && visibleDays) {
+          setSchedule(schedule);
+          setHours(hours);
+          setVisibleDays(visibleDays);
+        }
       } catch (e) {
         console.error("Failed to parse saved schedule", e);
         toast({
@@ -60,7 +56,7 @@ export default function Home() {
   }, [toast]);
 
   const handleSaveSchedule = () => {
-    localStorage.setItem('scheduleSnap-schedule', JSON.stringify(schedule));
+    localStorage.setItem('scheduleSnap-data', JSON.stringify({ schedule, hours, visibleDays }));
     toast({
       title: "Success!",
       description: "Your schedule has been saved locally.",
@@ -73,67 +69,104 @@ export default function Home() {
         title: "Exporting...",
         description: "Your schedule is being converted to an image.",
       });
+      // Temporarily remove borders from editable cells for a cleaner look
+      const cells = scheduleRef.current.querySelectorAll('[contenteditable="true"]');
+      cells.forEach(cell => (cell as HTMLElement).style.border = '1px solid transparent');
+
       html2canvas(scheduleRef.current, {
         useCORS: true,
-        backgroundColor: 'var(--background)',
+        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--background').trim(),
         scale: 2,
+        onclone: (document) => {
+            // This runs in the cloned document before rendering
+            const table = document.querySelector('table');
+            if (table) {
+                table.style.width = '100%';
+                table.style.tableLayout = 'fixed';
+            }
+        }
       }).then((canvas) => {
+        // Restore borders
+        cells.forEach(cell => (cell as HTMLElement).style.border = '');
+
         const link = document.createElement('a');
         link.download = 'schedulesnap.png';
         link.href = canvas.toDataURL('image/png');
         link.click();
-      });
-    }
-  };
-
-  const handleAiSuggestion = (suggestion: string) => {
-    try {
-      const newSchedule: ScheduleData = {
-        Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [], Saturday: [], Sunday: [],
-      };
-      
-      const lines = suggestion.split('\n').filter(line => line.trim() !== '');
-      let currentDay: keyof ScheduleData | null = null;
-      
-      lines.forEach(line => {
-        const dayMatch = line.match(/^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday):/i);
-        if (dayMatch) {
-          currentDay = dayMatch[1].charAt(0).toUpperCase() + dayMatch[1].slice(1).toLowerCase() as keyof ScheduleData;
-          if (!newSchedule[currentDay]) newSchedule[currentDay] = [];
-        } else if (currentDay && line.trim().startsWith('-')) {
-            const item = line.substring(line.indexOf('-') + 1).trim();
-            const timeActivityMatch = item.match(/^(.+?)\s*-\s*(.+)$/);
-
-            if (timeActivityMatch) {
-                const [, time, activity] = timeActivityMatch;
-                newSchedule[currentDay]?.push({ time: time.trim(), activity: activity.trim() });
-            } else {
-                newSchedule[currentDay]?.push({ time: "All Day", activity: item });
-            }
-        }
-      });
-
-      setSchedule(newSchedule);
-      toast({
-        title: "Schedule Updated!",
-        description: "The AI has generated a new schedule for you.",
-      });
-    } catch (e) {
+      }).catch(err => {
+         // Restore borders even if there's an error
+        cells.forEach(cell => (cell as HTMLElement).style.border = '');
         toast({
-          title: "Parsing Error",
-          description: "Could not understand the AI's suggestion format.",
-          variant: "destructive",
-        });
+            title: "Export failed",
+            description: "Something went wrong during the image export.",
+            variant: "destructive"
+        })
+        console.error("Export error:", err);
+      });
     }
   };
   
-  const updateActivity = (day: keyof ScheduleData, index: number, newActivity: string) => {
+  const updateActivity = (day: string, hour: string, activity: string) => {
+    setSchedule(prev => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        [hour]: activity
+      }
+    }));
+  };
+
+  const addHour = (newHour: string) => {
+    if (hours.includes(newHour) || !/^\d{1,2}:\d{2}$/.test(newHour)) {
+        toast({
+            title: "Invalid Hour",
+            description: "Please enter a valid hour (e.g., 14:30) that doesn't already exist.",
+            variant: "destructive",
+        });
+        return;
+    }
+    const newHours = [...hours, newHour].sort((a, b) => parseFloat(a.replace(':', '.')) - parseFloat(b.replace(':', '.')));
+    setHours(newHours);
+
     const newSchedule = { ...schedule };
-    if(newSchedule[day] && newSchedule[day][index]) {
-      newSchedule[day][index].activity = newActivity;
+    visibleDays.forEach(day => {
+        if (!newSchedule[day]) newSchedule[day] = {};
+        newSchedule[day][newHour] = '';
+    });
+    setSchedule(newSchedule);
+  };
+
+  const removeHour = (hourToRemove: string) => {
+    if (hours.length <= 1) {
+        toast({ title: "Cannot remove last hour", variant: "destructive" });
+        return;
+    }
+    setHours(hours.filter(h => h !== hourToRemove));
+    // No need to update schedule data, it will just not be displayed
+  };
+
+  const toggleDay = (day: DaysOfWeek) => {
+    const newVisibleDays = visibleDays.includes(day)
+      ? visibleDays.filter(d => d !== day)
+      : [...visibleDays, day];
+    
+    // Maintain a consistent order
+    const dayOrder: DaysOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    newVisibleDays.sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
+    
+    setVisibleDays(newVisibleDays);
+    
+    // Ensure day data exists if it's newly added
+    if (!schedule[day]) {
+      const newSchedule = { ...schedule };
+      newSchedule[day] = {};
+      hours.forEach(hour => {
+        newSchedule[day][hour] = '';
+      });
       setSchedule(newSchedule);
     }
   };
+
 
   return (
     <SidebarProvider>
@@ -141,12 +174,23 @@ export default function Home() {
         <Header onExport={handleExport} onSave={handleSaveSchedule} />
         <div className="flex flex-1 overflow-hidden">
           <Sidebar>
-            <ControlsSidebar onAiSuggestion={handleAiSuggestion} />
+            <ControlsSidebar
+              visibleDays={visibleDays}
+              onToggleDay={toggleDay}
+              hours={hours}
+              onAddHour={addHour}
+              onRemoveHour={removeHour}
+            />
           </Sidebar>
           <SidebarInset>
-            <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-              <div ref={scheduleRef}>
-                <ScheduleDisplay schedule={schedule} onUpdateActivity={updateActivity} />
+            <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+              <div ref={scheduleRef} className="bg-background">
+                <ScheduleDisplay 
+                  schedule={schedule}
+                  onUpdateActivity={updateActivity}
+                  hours={hours}
+                  visibleDays={visibleDays}
+                />
               </div>
             </main>
           </SidebarInset>
