@@ -1,10 +1,11 @@
 'use client';
 
-import { Palette, CalendarDays, Clock, Trash2, PlusCircle } from 'lucide-react';
+import { Palette, CalendarDays, Clock, Trash2, PlusCircle, PenSquare } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import CustomizationPanel from '@/components/customization-panel';
+import CreateTaskForm from '@/components/create-task-form';
 import { SidebarHeader, SidebarContent } from '@/components/ui/sidebar';
-import type { DaysOfWeek } from '@/app/page';
+import type { DaysOfWeek, Task } from '@/app/page';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { Label } from './ui/label';
@@ -17,11 +18,12 @@ interface ControlsSidebarProps {
   hours: string[];
   onAddHour: (hour: string) => void;
   onRemoveHour: (hour: string) => void;
+  onAddTask: (task: Omit<Task, 'id'>) => void;
 }
 
 const allDays: DaysOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-export default function ControlsSidebar({ visibleDays, onToggleDay, hours, onAddHour, onRemoveHour }: ControlsSidebarProps) {
+export default function ControlsSidebar({ visibleDays, onToggleDay, hours, onAddHour, onRemoveHour, onAddTask }: ControlsSidebarProps) {
   const [newHour, setNewHour] = useState('');
 
   const handleAddHour = (e: React.FormEvent) => {
@@ -36,7 +38,18 @@ export default function ControlsSidebar({ visibleDays, onToggleDay, hours, onAdd
         <h2 className="text-lg font-semibold pl-2">Dashboard</h2>
       </SidebarHeader>
       <SidebarContent className="p-0">
-        <Accordion type="multiple" defaultValue={['days-hours', 'customize']} className="w-full">
+        <Accordion type="multiple" defaultValue={['create-task', 'days-hours']} className="w-full">
+           <AccordionItem value="create-task" className="border-b">
+            <AccordionTrigger className="px-4 text-base hover:no-underline rounded-md hover:bg-sidebar-accent">
+              <div className="flex items-center gap-2">
+                <PenSquare className="h-5 w-5 text-primary" />
+                <span>Create Task</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="p-4 pt-0">
+              <CreateTaskForm hours={hours} visibleDays={visibleDays} onAddTask={onAddTask} />
+            </AccordionContent>
+          </AccordionItem>
           <AccordionItem value="days-hours" className="border-b">
             <AccordionTrigger className="px-4 text-base hover:no-underline rounded-md hover:bg-sidebar-accent">
               <div className="flex items-center gap-2">
