@@ -2,7 +2,7 @@
 
 Welcome to ScheduleSnap! This is a modern, interactive scheduling application built with Next.js and ShadCN UI. It allows you to create, manage, and visualize your weekly schedules with a clean and intuitive interface. All your data is saved directly in your browser, so your schedules are always available on your device.
 
-![ScheduleSnap Home](https://placehold.co/800x400.png?text=ScheduleSnap+Dashboard)
+![ScheduleSnap Home](https://placehold.co/800x400.png)
 *<p align="center">Your central dashboard for all your schedules.</p>*
 
 ---
