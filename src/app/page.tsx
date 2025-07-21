@@ -109,7 +109,6 @@ export default function HomePage() {
               <PlusCircle className="mr-2" />
               {t('createNewSchedule')}
             </Button>
-            <Image src="https://placehold.co/400x300.png" alt="Empty state illustration" width={400} height={300} data-ai-hint="empty calendar" className="max-w-xs opacity-50 mt-8"/>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
